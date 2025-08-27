@@ -16,11 +16,11 @@ async function loadResults(apiUrl) {
   return await res.json();
 }
 
-function populateDropdown(selectElem, items) {
-  selectElem.innerHTML = ''; // clear existing
+function populateDropdown(selectElem, items, defaultLabel) {
+  selectElem.innerHTML = '';
   const defaultOpt = document.createElement('option');
   defaultOpt.value = '';
-  defaultOpt.textContent = `Select ${selectElem.id.replace('Dropdown','')}`;
+  defaultOpt.textContent = defaultLabel;
   selectElem.appendChild(defaultOpt);
 
   items.forEach(item => {
@@ -50,9 +50,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log('DOM fully loaded');
 
   try {
-    console.log('Loading CSV…');
     const allowedCodes = new Set(await loadCSV('division2.csv'));
-    console.log('CSV loaded', allowedCodes.size);
+    console.log('Allowed school codes:', allowedCodes.size);
 
     const genderSelect = document.getElementById('genderDropdown');
     const eventSelect = document.getElementById('eventDropdown');
@@ -64,49 +63,56 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    // We'll populate events after we have data
+    // --- STEP 1: load all events ONCE and populate the dropdown ---
+    console.log('Fetching all events for initial dropdown…');
+    const allEventsData = await loadResults('/api/results?eventName=Girls 100m Freestyle'); 
+    // ^ You might want to change this to a special backend route that lists all events instead of scraping one
+
+    const uniqueEvents = [...new Set(allEventsData.map(r => r.event))].sort();
+    populateDropdown(eventSelect, uniqueEvents, 'Select event');
+
+    // --- STEP 2: click handler ---
     showBtn.addEventListener('click', async () => {
       try {
-        console.log('Show Results clicked');
-
-        console.log('Loading results…');
-        const results = await loadResults('/api/results.js');
-        console.log('Results loaded', results.length);
-
-        // Filter + dedupe
-        const filtered = results.filter(r => allowedCodes.has(r.schoolCode));
-        const unique = Array.from(new Map(filtered.map(item => [item.id, item])).values());
-        console.log('Filtered & deduped', unique.length);
-
-        // Populate events dynamically now that we have data
-        const events = [...new Set(unique.map(r => r.event))].sort();
-        populateDropdown(eventSelect, events);
-
-        // Get current filter values
-        const genderVal = genderSelect.value;
         const eventVal = eventSelect.value;
+        const genderVal = genderSelect.value;
         const courseVal = courseSelect.value;
-        console.log('Filters:', { genderVal, eventVal, courseVal });
 
+        if (!eventVal) {
+          alert('Please select an event first.');
+          return;
+        }
+
+        const apiUrl = `/api/results?eventName=${encodeURIComponent(eventVal)}`;
+        console.log('Fetching results from', apiUrl);
+
+        const results = await loadResults(apiUrl);
+
+        // Filter by allowed codes
+        const filtered = results.filter(r => allowedCodes.has(r.schoolCode));
+
+        // Deduplicate (name + time key)
+        const unique = Array.from(
+          new Map(filtered.map(item => [`${item.name}-${item.time}`, item])).values()
+        );
+
+        // Apply gender + course filters (if present)
         const filteredData = unique.filter(r =>
           (genderVal ? r.gender === genderVal : true) &&
           (eventVal ? r.event === eventVal : true) &&
           (courseVal ? r.course === courseVal : true)
         );
 
-        console.log('Filtered count:', filteredData.length);
         renderTable(filteredData);
 
       } catch (err) {
-        console.error('Error on Show Results click:', err);
+        console.error('Error fetching filtered results:', err);
       }
     });
 
     console.log('Click listener attached');
-    // No render here — waits for button click
 
   } catch (err) {
     console.error('Initialization error:', err);
   }
 });
-

@@ -64,21 +64,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    // --- Click handler for "Show Results" ---
-// --- Click handler for "Show Results" ---
-showBtn.addEventListener('click', async () => {
+ // --- Click handler for "Show Results" ---
+document.getElementById('showResultsBtn').addEventListener('click', async () => {
   try {
-    const genderVal = genderSelect.value;  // "M" or "F"
-    const eventVal  = eventSelect.value;   // e.g. "I:C:100"
-    const courseVal = courseSelect.value;  // e.g. "3" for SC Yards
+    const genderVal = document.getElementById('genderDropdown').value;
+    const eventVal  = document.getElementById('eventDropdown').value;
+    const courseVal = document.getElementById('courseDropdown').value;
 
     if (!genderVal || !eventVal || !courseVal) {
       alert('Please select gender, event, and course.');
       return;
     }
 
-    // Build API URL with correct param name for event
-    const apiUrl = `/api/results?gender=${encodeURIComponent(genderVal)}&event=${encodeURIComponent(eventVal)}&course=${encodeURIComponent(courseVal)}`;
+    // Default org=1, pull event directly from dropdown value
+    const orgVal = 1;
+
+    const apiUrl = `/api/results?org=${orgVal}&gender=${encodeURIComponent(genderVal)}&event=${encodeURIComponent(eventVal)}&course=${encodeURIComponent(courseVal)}`;
     console.log('Fetching from:', apiUrl);
 
     const results = await loadResults(apiUrl);
@@ -105,6 +106,7 @@ showBtn.addEventListener('click', async () => {
     console.error('Initialization error:', err);
   }
 });
+
 
 
 

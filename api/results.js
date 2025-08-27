@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import cheerio from 'cheerio';
 import fs from 'fs';
 import path from 'path';
@@ -12,7 +11,7 @@ export default async (req, res) => {
       return res.status(400).json({ error: 'Missing required query params' });
     }
 
-    // Load allowed school codes from CSV (in /public/division2.csv)
+    // Load allowed school codes from CSV
     const csvPath = path.join(process.cwd(), 'public', 'division2.csv');
     const allowedCodes = new Set(
       fs.readFileSync(csvPath, 'utf8')
@@ -22,15 +21,15 @@ export default async (req, res) => {
         .map(line => line.split(',')[0].trim())
     );
 
-    // Build their native query URL
-    const targetUrl = `https://toptimesbuild.sportstiming.com/reports/report_rankings.php?org=${org}&gender=${encodeURIComponent(gender)}&event=${encodeURIComponent(eventCode)}&lc=${encodeURIComponent(course)}&100course=0`;
+    // Build native query URL
+    const targetUrl = `https://toptimesbuild.sportstiming.com/reports/report_rankings.php?org=${org}&gender=${encodeURIComponent(gender)}&event=${encodeURIComponent(event)}&lc=${encodeURIComponent(course)}&100course=0`;
 
-    const html = await fetch(targetUrl).then(r => r.text());
+    const resp = await fetch(targetUrl);
+    const html = await resp.text();
     const $ = cheerio.load(html);
 
     let results = [];
 
-    // Adjust selectors depending on their markup — most likely table rows
     $('table tr').each((i, row) => {
       const cells = $(row).find('td');
       if (cells.length >= 3) {
@@ -44,7 +43,7 @@ export default async (req, res) => {
       }
     });
 
-    // Deduplicate by name+time
+    // Deduplicate by name + time
     results = Array.from(
       new Map(results.map(r => [`${r.name}-${r.time}`, r])).values()
     );

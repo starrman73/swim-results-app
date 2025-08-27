@@ -5,10 +5,10 @@ import path from 'path';
 
 export default async (req, res) => {
   try {
-    const { gender, eventCode, course } = req.query;
+    const { gender, event, course } = req.query;
     const org = 1; // South Carolina High School League
 
-    if (!gender || !eventCode || !course) {
+    if (!gender || !event || !course) {
       return res.status(400).json({ error: 'Missing required query params' });
     }
 

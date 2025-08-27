@@ -37,6 +37,8 @@
     <option value="L">Long Course Meters (convert)</option>
     <option value="LO">Long Course Meters Only</option>
   </select>
+
+   <button id="showResultsBtn">Show Results</button>
 </div>
 
   <table id="resultsTable">
@@ -46,7 +48,9 @@
     <tbody></tbody>
   </table>
 
+      document.getElementById('showResultsBtn').addEventListener('click', fetchResults);
   <script src="script.js"></script>
 </body>
 </html>
+
 

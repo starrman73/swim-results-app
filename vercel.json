@@ -1,7 +1,10 @@
 {
   "version": 2,
   "builds": [
-    { "src": "frontend/**", "use": "@vercel/static" },
+    { "src": "frontend/index.html", "use": "@vercel/static" },
+    { "src": "frontend/style.css", "use": "@vercel/static" },
+    { "src": "frontend/script.js", "use": "@vercel/static" },
+    { "src": "frontend/division2.csv", "use": "@vercel/static" },
     { "src": "api/results.js", "use": "@vercel/node" }
   ],
   "routes": [

@@ -75,7 +75,11 @@ document.getElementById('showResultsBtn').addEventListener('click', async () => 
       alert('Please select gender, event, and course.');
       return;
     }
-
+console.log({
+  genderVal,
+  eventVal,
+  courseVal
+});
     const params = new URLSearchParams({
       org: 1,                // default to 1
       gender: genderVal,
@@ -109,6 +113,7 @@ document.getElementById('showResultsBtn').addEventListener('click', async () => 
     console.error('Initialization error:', err);
   }
 });
+
 
 
 

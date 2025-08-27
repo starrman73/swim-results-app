@@ -38,20 +38,21 @@ function renderTable(data) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log('DOM fully loaded');
+
   try {
-    // Load whitelist from CSV
+    console.log('Loading CSV…');
     const allowedCodes = new Set(await loadCSV('division2.csv'));
-    
-    // Load all results from API
+    console.log('CSV loaded', allowedCodes.size);
+
+    console.log('Loading results…');
     const results = await loadResults('/api/results');
+    console.log('Results loaded', results.length);
 
-    // Filter + dedupe
     const filtered = results.filter(r => allowedCodes.has(r.schoolCode));
-    const unique = Array.from(
-      new Map(filtered.map(item => [item.id, item])).values()
-    );
+    const unique = Array.from(new Map(filtered.map(item => [item.id, item])).values());
+    console.log('Filtered & deduped', unique.length);
 
-    // Grab dropdown elements from HTML
     const genderSelect = document.getElementById('genderDropdown');
     const eventSelect = document.getElementById('eventDropdown');
     const courseSelect = document.getElementById('courseDropdown');
@@ -62,17 +63,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    // Populate event dropdown dynamically (others already have static options in HTML)
     const events = [...new Set(unique.map(r => r.event))].sort();
     populateDropdown(eventSelect, events);
 
-    // Filtering function triggered by Show Results button
     function applyFilters() {
       console.log('Show Results clicked');
       const genderVal = genderSelect.value;
       const eventVal = eventSelect.value;
       const courseVal = courseSelect.value;
-
       console.log('Filters:', { genderVal, eventVal, courseVal });
 
       const filteredData = unique.filter(r =>
@@ -85,12 +83,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderTable(filteredData);
     }
 
-    // Bind button click
     showBtn.addEventListener('click', applyFilters);
+    console.log('Click listener attached');
 
-    // Initial render of all allowed swimmers
     renderTable(unique);
+    console.log('Initial table rendered');
+
   } catch (err) {
     console.error('Initialization error:', err);
   }
 });
+

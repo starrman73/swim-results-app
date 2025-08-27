@@ -50,8 +50,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log('DOM fully loaded');
 
   try {
+    // --- Load CSV of allowed school codes ---
     const allowedCodes = new Set(await loadCSV('division2.csv'));
-    console.log('Allowed school codes:', allowedCodes.size);
+    console.log('Loaded school codes:', allowedCodes.size);
 
     const genderSelect = document.getElementById('genderDropdown');
     const eventSelect = document.getElementById('eventDropdown');
@@ -63,18 +64,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    // --- STEP 1: load all events ONCE and populate the dropdown ---
-    console.log('Fetching all events for initial dropdown…');
-    const allEventsData = await loadResults('/api/results?eventName=Girls 100m Freestyle'); 
-    // ^ You might want to change this to a special backend route that lists all events instead of scraping one
+    // --- Populate event dropdown from a known source ---
+    // Ideally, replace this with a backend route that returns all event names
+    // For now, we'll populate it manually or from a known list
+    const initialEvents = [
+      "Girls 100m Freestyle",
+      "Boys 100m Freestyle",
+      "Girls 200m Medley Relay"
+      // ...add more here or fetch from backend if available
+    ];
+    populateDropdown(eventSelect, initialEvents, 'Select event');
 
-    const uniqueEvents = [...new Set(allEventsData.map(r => r.event))].sort();
-    populateDropdown(eventSelect, uniqueEvents, 'Select event');
-
-    // --- STEP 2: click handler ---
+    // --- Click handler for "Show Results" ---
     showBtn.addEventListener('click', async () => {
       try {
-        const eventVal = eventSelect.value;
+        let eventVal = eventSelect.value;
         const genderVal = genderSelect.value;
         const courseVal = courseSelect.value;
 
@@ -83,20 +87,23 @@ document.addEventListener('DOMContentLoaded', async () => {
           return;
         }
 
-        const apiUrl = `/api/results?eventName=${encodeURIComponent(eventVal)}`;
-        console.log('Fetching results from', apiUrl);
+        // Strip " (number)" and trim extra spaces
+        const cleanEvent = eventVal.replace(/\s*\(\d+\)\s*$/, '').trim();
+
+        const apiUrl = `/api/results?eventName=${encodeURIComponent(cleanEvent)}`;
+        console.log('Fetching from:', apiUrl);
 
         const results = await loadResults(apiUrl);
 
-        // Filter by allowed codes
+        // Filter to allowed school codes
         const filtered = results.filter(r => allowedCodes.has(r.schoolCode));
 
-        // Deduplicate (name + time key)
+        // Deduplicate by name + time
         const unique = Array.from(
           new Map(filtered.map(item => [`${item.name}-${item.time}`, item])).values()
         );
 
-        // Apply gender + course filters (if present)
+        // Apply dropdown filters
         const filteredData = unique.filter(r =>
           (genderVal ? r.gender === genderVal : true) &&
           (eventVal ? r.event === eventVal : true) &&
@@ -106,7 +113,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderTable(filteredData);
 
       } catch (err) {
-        console.error('Error fetching filtered results:', err);
+        console.error('Error on Show Results click:', err);
       }
     });
 
@@ -116,3 +123,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Initialization error:', err);
   }
 });
+
+

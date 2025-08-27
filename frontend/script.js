@@ -67,19 +67,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Click handler for "Show Results" ---
     showBtn.addEventListener('click', async () => {
       try {
-        let eventVal = eventSelect.value;
-        const genderVal = genderSelect.value;
-        const courseVal = courseSelect.value;
+        const genderVal = genderSelect.value;   // e.g. "M" or "F"
+        const eventCode = eventSelect.value;    // e.g. "I:C:100"
+        const courseVal = courseSelect.value;   // e.g. "3"
 
-        if (!eventVal) {
-          alert('Please select an event first.');
+        if (!genderVal || !eventCode || !courseVal) {
+          alert('Please select gender, event, and course.');
           return;
         }
 
-        // Strip " (number)" and trim extra spaces
-        const cleanEvent = eventVal.replace(/\s*\(\d+\)\s*$/, '').trim();
-
-        const apiUrl = `/api/results?eventName=${encodeURIComponent(cleanEvent)}`;
+        // Build API URL with params
+        const apiUrl = `/api/results?gender=${encodeURIComponent(genderVal)}&eventCode=${encodeURIComponent(eventCode)}&course=${encodeURIComponent(courseVal)}`;
         console.log('Fetching from:', apiUrl);
 
         const results = await loadResults(apiUrl);
@@ -92,14 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           new Map(filtered.map(item => [`${item.name}-${item.time}`, item])).values()
         );
 
-        // Apply dropdown filters
-        const filteredData = unique.filter(r =>
-          (genderVal ? r.gender === genderVal : true) &&
-          (eventVal ? r.event === eventVal : true) &&
-          (courseVal ? r.course === courseVal : true)
-        );
-
-        renderTable(filteredData);
+        renderTable(unique);
 
       } catch (err) {
         console.error('Error on Show Results click:', err);
@@ -112,6 +103,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Initialization error:', err);
   }
 });
+
+
 
 
 

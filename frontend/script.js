@@ -65,37 +65,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- Click handler for "Show Results" ---
-    showBtn.addEventListener('click', async () => {
-      try {
-        const genderVal = genderSelect.value;   // e.g. "M" or "F"
-        const eventCode = eventSelect.value;    // e.g. "I:C:100"
-        const courseVal = courseSelect.value;   // e.g. "3"
+// --- Click handler for "Show Results" ---
+showBtn.addEventListener('click', async () => {
+  try {
+    const genderVal = genderSelect.value;  // "M" or "F"
+    const eventVal  = eventSelect.value;   // e.g. "I:C:100"
+    const courseVal = courseSelect.value;  // e.g. "3" for SC Yards
 
-        if (!genderVal || !eventCode || !courseVal) {
-          alert('Please select gender, event, and course.');
-          return;
-        }
+    if (!genderVal || !eventVal || !courseVal) {
+      alert('Please select gender, event, and course.');
+      return;
+    }
 
-        // Build API URL with params
-        const apiUrl = `/api/results?gender=${encodeURIComponent(genderVal)}&eventCode=${encodeURIComponent(eventCode)}&course=${encodeURIComponent(courseVal)}`;
-        console.log('Fetching from:', apiUrl);
+    // Build API URL with correct param name for event
+    const apiUrl = `/api/results?gender=${encodeURIComponent(genderVal)}&event=${encodeURIComponent(eventVal)}&course=${encodeURIComponent(courseVal)}`;
+    console.log('Fetching from:', apiUrl);
 
-        const results = await loadResults(apiUrl);
+    const results = await loadResults(apiUrl);
 
-        // Filter to allowed school codes
-        const filtered = results.filter(r => allowedCodes.has(r.schoolCode));
+    // Filter to allowed school codes from CSV
+    const filtered = results.filter(r => allowedCodes.has(r.schoolCode));
 
-        // Deduplicate by name + time
-        const unique = Array.from(
-          new Map(filtered.map(item => [`${item.name}-${item.time}`, item])).values()
-        );
+    // Deduplicate by name + time
+    const unique = Array.from(
+      new Map(filtered.map(item => [`${item.name}-${item.time}`, item])).values()
+    );
 
-        renderTable(unique);
+    renderTable(unique);
 
-      } catch (err) {
-        console.error('Error on Show Results click:', err);
-      }
-    });
+  } catch (err) {
+    console.error('Error on Show Results click:', err);
+  }
+});
+
 
     console.log('Click listener attached');
 
@@ -103,6 +105,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Initialization error:', err);
   }
 });
+
 
 
 

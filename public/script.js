@@ -90,7 +90,9 @@ console.log({
       course: courseVal
     });
 
-    const apiUrl = `/api/results?${params.toString()}`;
+    //const url = `/api/results?org=1&gender=${genderVal}&event=${eventVal}&course=${courseVal}`;
+
+    const apiUrl = `/api/results?org=1&gender=${genderVal}&event=${eventVal}&course=${courseVal}`;
     console.log('Fetching from:', apiUrl);
 
     const results = await loadResults(apiUrl);
@@ -116,6 +118,7 @@ console.log({
     console.error('Initialization error:', err);
   }
 });
+
 
 
 

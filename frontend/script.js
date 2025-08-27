@@ -1,7 +1,11 @@
 async function loadCSV(url) {
   const res = await fetch(url);
   const text = await res.text();
-  return text.trim().split('\n').slice(1).map(line => line.split(',')[0]);
+  return text
+    .trim()
+    .split('\n')
+    .slice(1)
+    .map(line => line.split(',')[0]); // grab schoolCode from first column
 }
 
 async function loadResults(apiUrl) {
@@ -23,42 +27,57 @@ function renderTable(data) {
   tbody.innerHTML = '';
   data.forEach(swimmer => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${swimmer.name}</td>
-                    <td>${swimmer.schoolCode}</td>
-                    <td>${swimmer.event}</td>
-                    <td>${swimmer.time}</td>`;
+    tr.innerHTML = `
+      <td>${swimmer.name}</td>
+      <td>${swimmer.schoolCode}</td>
+      <td>${swimmer.event}</td>
+      <td>${swimmer.time}</td>
+    `;
     tbody.appendChild(tr);
   });
 }
 
 (async function init() {
+  // Load whitelist from CSV
   const allowedCodes = new Set(await loadCSV('division2.csv'));
+  
+  // Load all results from API
   const results = await loadResults('/api/results');
 
+  // Filter + dedupe
   const filtered = results.filter(r => allowedCodes.has(r.schoolCode));
-  const unique = Array.from(new Map(filtered.map(item => [item.id, item])).values());
+  const unique = Array.from(
+    new Map(filtered.map(item => [item.id, item])).values()
+  );
 
-  const schoolSelect = document.getElementById('schoolSelect');
-  const eventSelect = document.getElementById('eventSelect');
+  // Grab dropdown elements from HTML
+  const genderSelect = document.getElementById('genderDropdown');
+  const eventSelect = document.getElementById('eventDropdown');
+  const courseSelect = document.getElementById('courseDropdown');
+  const showBtn = document.getElementById('showResultsBtn');
 
-  const schools = [...new Set(unique.map(r => r.schoolCode))].sort();
+  // Populate event dropdown dynamically (others already have static options in HTML)
   const events = [...new Set(unique.map(r => r.event))].sort();
-
-  populateDropdown(schoolSelect, schools);
   populateDropdown(eventSelect, events);
 
+  // Filtering function triggered by Show Results button
   function applyFilters() {
-    const schoolVal = schoolSelect.value;
+    const genderVal = genderSelect.value;
     const eventVal = eventSelect.value;
+    const courseVal = courseSelect.value;
+
     const filteredData = unique.filter(r =>
-      (schoolVal ? r.schoolCode === schoolVal : true) &&
-      (eventVal ? r.event === eventVal : true)
+      (genderVal ? r.gender === genderVal : true) &&
+      (eventVal ? r.event === eventVal : true) &&
+      (courseVal ? r.course === courseVal : true)
     );
+
     renderTable(filteredData);
   }
 
-  schoolSelect.addEventListener('change', applyFilters);
-  eventSelect.addEventListener('change', applyFilters);
+  // Bind button click
+  showBtn.addEventListener('click', applyFilters);
 
+  // Initial render of all allowed swimmers
   renderTable(unique);
 })();

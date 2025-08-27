@@ -1,56 +1,53 @@
 import fetch from 'node-fetch';
 import cheerio from 'cheerio';
-
-function timeToSeconds(timeStr) {
-  const parts = timeStr.split(':').map(Number);
-  if (parts.length === 2) {
-    return parts[0] * 60 + parts[1];
-  }
-  return parts[0];
-}
+import fs from 'fs';
+import path from 'path';
 
 export default async (req, res) => {
   try {
-    const { eventName } = req.query; // e.g. "?eventName=Girls 100m Freestyle"
-    if (!eventName) {
-      return res.status(400).json({ error: 'Missing eventName query param' });
+    const { gender, eventCode, course } = req.query;
+    const org = 1; // South Carolina High School League
+
+    if (!gender || !eventCode || !course) {
+      return res.status(400).json({ error: 'Missing required query params' });
     }
 
-    const html = await fetch(
-      'https://sportstiming.com/south-carolina-high-school-swimming-top-times'
-    ).then(r => r.text());
+    // Load allowed school codes from CSV (in /public/division2.csv)
+    const csvPath = path.join(process.cwd(), 'public', 'division2.csv');
+    const allowedCodes = new Set(
+      fs.readFileSync(csvPath, 'utf8')
+        .trim()
+        .split('\n')
+        .slice(1)
+        .map(line => line.split(',')[0].trim())
+    );
 
+    // Build their native query URL
+    const targetUrl = `https://toptimesbuild.sportstiming.com/reports/report_rankings.php?org=${org}&gender=${encodeURIComponent(gender)}&event=${encodeURIComponent(eventCode)}&lc=${encodeURIComponent(course)}&100course=0`;
+
+    const html = await fetch(targetUrl).then(r => r.text());
     const $ = cheerio.load(html);
+
     let results = [];
 
-    $('h3').each((_, header) => {
-      if ($(header).text().trim() === eventName) {
-        $(header).next('table').find('tr').each((i, row) => {
-          const cells = $(row).find('td');
-          if (cells.length === 3) {
-            const name = $(cells[0]).text().trim();
-            const schoolCode = $(cells[1]).text().trim();
-            const time = $(cells[2]).text().trim();
+    // Adjust selectors depending on their markup — most likely table rows
+    $('table tr').each((i, row) => {
+      const cells = $(row).find('td');
+      if (cells.length >= 3) {
+        const name = $(cells[0]).text().trim();
+        const schoolCode = $(cells[1]).text().trim();
+        const time = $(cells[2]).text().trim();
 
-            if (time) {
-              results.push({
-                event: eventName,
-                name,
-                schoolCode,
-                time,
-                timeSeconds: timeToSeconds(time)
-              });
-            }
-          }
-        });
+        if (name && time && allowedCodes.has(schoolCode)) {
+          results.push({ name, schoolCode, time });
+        }
       }
     });
 
-    results.sort((a, b) => a.timeSeconds - b.timeSeconds);
-    results.forEach((item, idx) => {
-      item.rank = idx + 1;
-      delete item.timeSeconds;
-    });
+    // Deduplicate by name+time
+    results = Array.from(
+      new Map(results.map(r => [`${r.name}-${r.time}`, r])).values()
+    );
 
     res.status(200).json(results);
   } catch (err) {

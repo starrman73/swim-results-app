@@ -9,20 +9,35 @@
 <body>
   <h1>Division 2 Swim Results</h1>
 
-  <div class="filters">
-    <label>
-      School:
-      <select id="schoolSelect">
-        <option value="">All</option>
-      </select>
-    </label>
-    <label>
-      Event:
-      <select id="eventSelect">
-        <option value="">All</option>
-      </select>
-    </label>
-  </div>
+<div class="filters">
+  <select id="genderDropdown">
+    <option value="">Select Gender</option>
+    <option value="F">Girls</option>
+    <option value="M">Boys</option>
+    <option value="X">Mixed</option>
+  </select>
+
+  <select id="eventDropdown">
+    <option value="">Select Event</option>
+    <option value="I:A:50">50 Free</option>
+    <option value="I:A:100">100 Free</option>
+    <option value="I:A:200">200 Free</option>
+    <option>500 Free</option>
+    <option>100 Back</option>
+    <option>100 Breast</option>
+    <option>100 Fly</option>
+  </select>
+
+  <select id="courseDropdown">
+    <option value="">Select Course</option>
+    <option value="Y">SC Yards (convert)</option>
+    <option value="YO">SC Yards Only</option>
+    <option value="S">SC Meters (convert)</option>
+    <option value="SO">SC Meters Only</option>
+    <option value="L">Long Course Meters (convert)</option>
+    <option value="LO">Long Course Meters Only</option>
+  </select>
+</div>
 
   <table id="resultsTable">
     <thead>
@@ -34,3 +49,4 @@
   <script src="script.js"></script>
 </body>
 </html>
+

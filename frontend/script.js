@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Show Results clicked');
 
         console.log('Loading results…');
-        const results = await loadResults('/api/results.json');
+        const results = await loadResults('/api/results.js');
         console.log('Results loaded', results.length);
 
         // Filter + dedupe
@@ -109,3 +109,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Initialization error:', err);
   }
 });
+

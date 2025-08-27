@@ -80,6 +80,9 @@ console.log({
   eventVal,
   courseVal
 });
+
+    console.log('Raw event value from dropdown:', document.getElementById('eventDropdown').value);
+
     const params = new URLSearchParams({
       org: 1,                // default to 1
       gender: genderVal,
@@ -113,6 +116,7 @@ console.log({
     console.error('Initialization error:', err);
   }
 });
+
 
 
 

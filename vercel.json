@@ -3,8 +3,6 @@
   "builds": [
     { "src": "public/**", "use": "@vercel/static" },
     { "src": "api/results.js", "use": "@vercel/node" }
-  ],
-  "routes": [
-    { "src": "/", "dest": "/public/index.html" }
   ]
 }
+

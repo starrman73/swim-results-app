@@ -77,9 +77,9 @@ document.getElementById('showResultsBtn').addEventListener('click', async () => 
     }
 
     const params = new URLSearchParams({
-      org: 1,
+      org: 1,                // default to 1
       gender: genderVal,
-      event: eventVal,
+      event: eventVal,       // pulled directly from dropdown value
       course: courseVal
     });
 
@@ -88,13 +88,10 @@ document.getElementById('showResultsBtn').addEventListener('click', async () => 
 
     const results = await loadResults(apiUrl);
 
-    // Filter to allowed school codes from CSV
     const filtered = results.filter(r => allowedCodes.has(r.schoolCode));
-
-    // Deduplicate by name + time
-    const unique = Array.from(
-      new Map(filtered.map(item => [`${item.name}-${item.time}`, item])).values()
-    );
+    const unique = Array.from(new Map(
+      filtered.map(item => [`${item.name}-${item.time}`, item])
+    ).values());
 
     renderTable(unique);
 
@@ -105,12 +102,14 @@ document.getElementById('showResultsBtn').addEventListener('click', async () => 
 
 
 
+
     console.log('Click listener attached');
 
   } catch (err) {
     console.error('Initialization error:', err);
   }
 });
+
 
 
 

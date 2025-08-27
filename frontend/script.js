@@ -76,10 +76,14 @@ document.getElementById('showResultsBtn').addEventListener('click', async () => 
       return;
     }
 
-    // Default org=1, pull event directly from dropdown value
-    const orgVal = 1;
+    const params = new URLSearchParams({
+      org: 1,
+      gender: genderVal,
+      event: eventVal,
+      course: courseVal
+    });
 
-    const apiUrl = `/api/results?org=${orgVal}&gender=${encodeURIComponent(genderVal)}&event=${encodeURIComponent(eventVal)}&course=${encodeURIComponent(courseVal)}`;
+    const apiUrl = `/api/results?${params.toString()}`;
     console.log('Fetching from:', apiUrl);
 
     const results = await loadResults(apiUrl);
@@ -100,12 +104,14 @@ document.getElementById('showResultsBtn').addEventListener('click', async () => 
 });
 
 
+
     console.log('Click listener attached');
 
   } catch (err) {
     console.error('Initialization error:', err);
   }
 });
+
 
 
 

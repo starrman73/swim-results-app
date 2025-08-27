@@ -64,17 +64,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    // --- Populate event dropdown from a known source ---
-    // Ideally, replace this with a backend route that returns all event names
-    // For now, we'll populate it manually or from a known list
-    const initialEvents = [
-      "Girls 100m Freestyle",
-      "Boys 100m Freestyle",
-      "Girls 200m Medley Relay"
-      // ...add more here or fetch from backend if available
-    ];
-    populateDropdown(eventSelect, initialEvents, 'Select event');
-
     // --- Click handler for "Show Results" ---
     showBtn.addEventListener('click', async () => {
       try {
@@ -123,5 +112,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Initialization error:', err);
   }
 });
+
 
 

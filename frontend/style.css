@@ -1,0 +1,43 @@
+body {
+  font-family: sans-serif;
+  margin: 2rem;
+  background: #f9f9f9;
+}
+
+h1 {
+  text-align: center;
+}
+
+.filters {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+label {
+  margin: 0 1rem;
+}
+
+select {
+  padding: 0.25rem;
+}
+
+table {
+  border-collapse: collapse;
+  margin: auto;
+  width: 90%;
+  background: #fff;
+}
+
+th, td {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #ccc;
+}
+
+th {
+  background: #0066cc;
+  color: white;
+}
+
+tr:hover {
+  background: #f1f1f1;
+}

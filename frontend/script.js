@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('CSV loaded', allowedCodes.size);
 
     console.log('Loading results…');
-    const results = await loadResults('/api/results');
+    const results = await loadResults('/api/results.json');
     console.log('Results loaded', results.length);
 
     const filtered = results.filter(r => allowedCodes.has(r.schoolCode));
@@ -93,4 +93,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Initialization error:', err);
   }
 });
+
 

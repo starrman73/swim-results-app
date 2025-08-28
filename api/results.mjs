@@ -156,18 +156,13 @@ export default async (req, res) => {
     const headerHasTeam = headerCells.includes('team');
     const headerHasName = headerCells.includes('name');
 
-    const cleanedHeaders = headerCells.map(h =>
+const cleanedHeaders = headerCells.map(h =>
   h.toLowerCase().replace(/\s+/g, '').replace(/\(.*?\)/g, '')
 );
-    
-    const isRelay =
-    headerHasTeam &&
-    !headerHasName &&
-    (eventLower.includes('relay') ||
-     eventLower.includes('medley') ||
-     eventLower.includes('free relay'));
 
-    console.log('Relay detection:', isRelay);
+const isRelay = cleanedHeaders.includes('team') && !cleanedHeaders.includes('name');
+console.log('Relay detection (cleaned):', isRelay);
+    
 
     rows.each((i, row) => {
       const tds = $(row).find('td');

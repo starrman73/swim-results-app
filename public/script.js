@@ -1,12 +1,20 @@
 // ----- Spinner helpers -----
 function showSpinner() {
-  const sp = document.getElementById('spinner');
-  if (sp) sp.style.display = 'block';
+  const tbody = document.getElementById('resultsBody');
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr id="spinnerRow">
+        <td colspan="4" style="text-align:center;">
+          <div class="spinner"></div>
+        </td>
+      </tr>
+    `;
+  }
 }
 
 function hideSpinner() {
-  const sp = document.getElementById('spinner');
-  if (sp) sp.style.display = 'none';
+  const row = document.getElementById('spinnerRow');
+  if (row) row.remove();
 }
 
 // ----- Data loaders -----
@@ -148,3 +156,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   console.log('Click listener attached');
 });
+

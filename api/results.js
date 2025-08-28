@@ -151,7 +151,18 @@ export default async (req, res) => {
       ? $(table).find('tbody tr')
       : $(table).find('tr').slice(1);
 
-    const isRelay = headerCells.includes('team') && !headerCells.includes('name');
+    // Determine if this is really a relay
+    const eventLower = (event || '').toLowerCase();
+    const headerHasTeam = headerCells.includes('team');
+    const headerHasName = headerCells.includes('name');
+    onst isRelay =
+    headerHasTeam &&
+    !headerHasName &&
+    (eventLower.includes('relay') ||
+     eventLower.includes('medley') ||
+     eventLower.includes('free relay'));
+
+    console.log('Relay detection:', isRelay);
 
     rows.each((i, row) => {
       const tds = $(row).find('td');

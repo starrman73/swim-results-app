@@ -40,6 +40,8 @@ async function loadSchoolCodes(csvPath) {
 }
 
 function renderTable(data) {
+   console.log('renderTable incoming data length:', data.length);
+  console.table(data);
   const table = document.getElementById('resultsTable');
   const thead = table.querySelector('thead');
   const tbody = table.querySelector('tbody');
@@ -182,6 +184,7 @@ renderTable(unique);
 
   console.log('Click listener attached');
 });
+
 
 
 

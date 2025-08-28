@@ -128,21 +128,11 @@ export default async (req, res) => {
       return raw.replace(/\(.*?\)/g, '').replace(/[A-Z]$/, '').trim();
     };
 
-    // A tight code classifier for tokens like MDC, ESD, NFD
+    // Kept for school detection
     const isCodeToken = s => {
       if (isPlaceholder(s)) return false;
       const v = (s || '').trim();
       return /^[A-Z0-9]{2,6}$/.test(v) && v === v.toUpperCase();
-    };
-
-    const looksLikeHumanName = s => {
-      const v = (s || '').trim();
-      if (!v) return false;
-      if (isCodeToken(v)) return false;
-      if (/[a-z]/.test(v)) return true;
-      if (/\s/.test(v)) return true;
-      if (/[,'-]\s?/.test(v)) return true;
-      return v.length > 8;
     };
 
     const mapSchoolNameToCode = s => {
@@ -204,7 +194,7 @@ export default async (req, res) => {
 
         if (team && timeCell) {
           results.push({
-            name: team.trim(), // UI expects 'name'
+            name: team.trim(), // relay: show team in name
             schoolCode: null,
             time: normalizeTime(timeCell)
           });
@@ -221,21 +211,12 @@ export default async (req, res) => {
         return;
       }
 
-      // Read raw Name/School cells (if present)
+      // Take Name cell literally (do not null it based on heuristics)
       const rawNameCell = headerIndex.name != null ? (cellsText[headerIndex.name] || '').trim() : '';
-      const rawSchoolCell = headerIndex.school != null ? (cellsText[headerIndex.school] || '').trim() : '';
+      const name = rawNameCell && !isPlaceholder(rawNameCell) ? rawNameCell : null;
 
-      // Determine schoolCode
+      // Derive school code from School/Team only (never from Name)
       let schoolCode = findSchoolCodeInRow(cellsText) || null;
-
-      // If School was empty and Name looks like a code (e.g., MDC), use that code and force name to null
-      const nameCellIsCode = isCodeToken(rawNameCell);
-      if (!schoolCode && nameCellIsCode) {
-        schoolCode = normalizeCode(rawNameCell);
-      }
-
-      // Determine swimmer name: never return code-looking tokens
-      let name = looksLikeHumanName(rawNameCell) ? rawNameCell : null;
 
       results.push({
         name,
@@ -244,7 +225,7 @@ export default async (req, res) => {
       });
     });
 
-    // Deduplicate by stable key: prefer schoolCode when name is null
+    // Deduplicate by stable key
     results = Array.from(
       new Map(
         results.map(r => [

@@ -98,5 +98,10 @@ tr:hover {
   color: #666;
 }
 
+  html {
+  scroll-behavior: smooth;
 }
+
+}
+
 

@@ -46,7 +46,14 @@ function renderTable(data) {
 
   // Detect relay mode
   //const isRelay = data.every(s => !s.name);
-  const isRelay = data.every(s => !s.name || /^[A-Z]?\s*Relay$/i.test(s.name));
+  //const isRelay = data.every(s => !s.name || /^[A-Z]?\s*Relay$/i.test(s.name));
+  const isRelay = data.every(s => {
+  console.log('name value:', JSON.stringify(s.name));
+  return !s.name || /^[A-Z]?\s*Relay$/i.test(s.name);
+});
+
+console.log('Final isRelay result:', isRelay);
+  
 
 
   // Build header
@@ -170,6 +177,7 @@ renderTable(unique);
 
   console.log('Click listener attached');
 });
+
 
 
 

@@ -103,7 +103,8 @@ tr:hover {
 }
 
   .link-above-table {
-  text-align: right;
+  display: block;        /* or inline-block */
+  text-align: right;     /* forces right alignment in all views */
   margin-bottom: 6px;
 }
 
@@ -117,6 +118,7 @@ tr:hover {
 }
 
 }
+
 
 
 

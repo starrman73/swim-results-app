@@ -155,6 +155,11 @@ export default async (req, res) => {
     const eventLower = (event || '').toLowerCase();
     const headerHasTeam = headerCells.includes('team');
     const headerHasName = headerCells.includes('name');
+
+    const cleanedHeaders = headerCells.map(h =>
+  h.toLowerCase().replace(/\s+/g, '').replace(/\(.*?\)/g, '')
+);
+    
     const isRelay =
     headerHasTeam &&
     !headerHasName &&

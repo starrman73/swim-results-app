@@ -28,6 +28,28 @@ export default async (req, res) => {
     const html = await resp.text();
     const $ = cheerio.load(html);
 
+    // Debug: table & row inspection
+const tables = $('table');
+console.log(`DEBUG: Found ${tables.length} <table> element(s)`);
+
+tables.each((ti, table) => {
+  const rowCount = $(table).find('tr').length;
+  console.log(`DEBUG: Table[${ti}] has ${rowCount} <tr> row(s)`);
+
+  // Show first 3 parsed rows from this table
+  $(table)
+    .find('tr')
+    .slice(0, 3)
+    .each((ri, row) => {
+      const cells = $(row)
+        .find('th, td')
+        .map((ci, cell) => $(cell).text().trim())
+        .get();
+      console.log(`DEBUG: Table[${ti}] Row[${ri}]:`, cells);
+    });
+});
+
+
     console.log('Target URL:', targetUrl);
     console.log('Status:', resp.status);
     console.log('HTML length:', html.length);

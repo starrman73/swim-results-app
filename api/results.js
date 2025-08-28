@@ -28,33 +28,34 @@ export default async (req, res) => {
     const html = await resp.text();
     const $ = cheerio.load(html);
 
-    // Debug: table & row inspection
-const tables = $('table');
-console.log(`DEBUG: Found ${tables.length} <table> element(s)`);
+    // ===== Combined debug block =====
+    console.log('================ ENTERED TABLE DEBUG BLOCK ================');
+    console.log('DEBUG: HTML START >>>', html.substring(0, 500), '<<< HTML END SNIPPET');
 
-tables.each((ti, table) => {
-  const rowCount = $(table).find('tr').length;
-  console.log(`DEBUG: Table[${ti}] has ${rowCount} <tr> row(s)`);
+    const tables = $('table');
+    console.log(`DEBUG: Found ${tables.length} <table> element(s)`);
 
-  // Show first 3 parsed rows from this table
-  $(table)
-    .find('tr')
-    .slice(0, 3)
-    .each((ri, row) => {
-      const cells = $(row)
-        .find('th, td')
-        .map((ci, cell) => $(cell).text().trim())
-        .get();
-      console.log(`DEBUG: Table[${ti}] Row[${ri}]:`, cells);
+    tables.each((ti, table) => {
+      const rowCount = $(table).find('tr').length;
+      console.log(`DEBUG: Table[${ti}] has ${rowCount} <tr> row(s)`);
+
+      $(table)
+        .find('tr')
+        .slice(0, 3)
+        .each((ri, row) => {
+          const cells = $(row)
+            .find('th, td')
+            .map((ci, cell) => $(cell).text().trim())
+            .get();
+          console.log(`DEBUG: Table[${ti}] Row[${ri}]:`, cells);
+        });
     });
-});
-
+    // ===== End debug block =====
 
     console.log('Target URL:', targetUrl);
     console.log('Status:', resp.status);
     console.log('HTML length:', html.length);
     console.log('Snippet:', html.substring(0, 300));
-
 
     let results = [];
 

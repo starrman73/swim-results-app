@@ -1,64 +1,92 @@
 body {
   font-family: sans-serif;
-  margin: 2rem;
+  margin: 1rem;
   background: #f9f9f9;
 }
 
 h1 {
   text-align: center;
-}
-
-.filters {
-  text-align: center;
+  font-size: 1.5rem;
   margin-bottom: 1rem;
 }
 
-label {
-  margin: 0 1rem;
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
-select {
-  padding: 0.25rem;
+select, button {
+  padding: 0.4rem;
+  font-size: 1rem;
+}
+
+.results-wrapper,
+.school-key-wrapper {
+  overflow-x: auto; /* horizontal scroll if table is wider than screen */
 }
 
 table {
   border-collapse: collapse;
-  margin: auto;
-  width: 90%;
+  width: 100%;
+  min-width: 300px; /* helps prevent unreadable squish */
   background: #fff;
 }
 
 th, td {
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.75rem;
   border-bottom: 1px solid #ccc;
 }
 
 th {
   background: #0066cc;
   color: white;
+  text-align: left;
 }
 
 tr:hover {
   background: #f1f1f1;
 }
 
-#resultsTable th {
-  text-align: left;
+.legend-title {
+  margin-top: 2rem;
+  font-weight: normal;
+  font-size: 1rem;
+  color: #666;
 }
 
-#school-key th {
-  text-align: left;
+/* Key table styling */
+#schoolKey th {
+  background: #e0e0e0;
+  color: #000;
 }
 
-.school-key {
-  margin-top: 2rem;     /* pushes it down */
-  font-size: 0.9em;     /* slightly smaller text to show it’s secondary */
-  color: #444;          /* softens the visual weight */
+.school-key-wrapper {
+  margin-top: 1.5rem;
 }
 
+/* Mobile styles */
+@media (max-width: 600px) {
+  h1 {
+    font-size: 1.2rem;
+  }
 
+  select, button {
+    flex: 1 1 100%;
+    font-size: 0.95rem;
+  }
 
+  table {
+    font-size: 0.85rem;
+  }
 
+  th, td {
+    padding: 0.4rem;
+  }
 
-
-
+  .legend-title {
+    font-size: 0.9rem;
+  }
+}

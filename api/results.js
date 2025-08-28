@@ -42,80 +42,159 @@ export default async (req, res) => {
     const html = await resp.text();
     const $ = cheerio.load(html);
 
-    // ===== Combined debug block =====
-    console.log('================ ENTERED TABLE DEBUG BLOCK ================');
-    console.log(
-      'DEBUG: HTML START >>>',
-      html.substring(0, 500),
-      '<<< HTML END SNIPPET'
-    );
-
-    const tables = $('table');
-    console.log(`DEBUG: Found ${tables.length} <table> element(s)`);
-
-    // Inspect first table header (used only to detect relays safely)
-    const headerCells = tables.first().find('tr').first().find('th')
-      .map((i, el) => $(el).text().trim().toLowerCase())
-      .get();
-
-    // Only treat as relay if the header clearly shows team and NOT name
-    const isRelay = headerCells.includes('team') && !headerCells.includes('name');
-
-    console.log('Detected event type (conservative):', isRelay ? 'relay' : 'individual');
-
-    tables.each((ti, table) => {
-      const rowCount = $(table).find('tr').length;
-      console.log(`DEBUG: Table[${ti}] has ${rowCount} <tr> row(s)`);
-      $(table)
-        .find('tr')
-        .slice(0, 3)
-        .each((ri, row) => {
-          const cells = $(row)
-            .find('th, td')
-            .map((ci, cell) => $(cell).text().trim())
-            .get();
-          console.log(`DEBUG: Table[${ti}] Row[${ri}]:`, cells);
-        });
-    });
-    // ===== End debug block =====
-
     console.log('Target URL:', targetUrl);
     console.log('Status:', resp.status);
     console.log('HTML length:', html.length);
     console.log('Snippet:', html.substring(0, 300));
 
-    let results = [];
-
-    // Important: keep your original individual parsing intact
-    $('table tr').each((i, row) => {
-      const cells = $(row).find('td');
-      if (!cells.length) return;
-
-      if (isRelay) {
-        // Relay table typically: Rank | Team | Time (sometimes more cols)
-        // Map conservatively to avoid breaking single-swimmer flow
-        const team = cells.eq(1).text().trim();
-        const time = cells.eq(2).text().trim();
-        if (team && time) {
-          // Preserve original schema keys to avoid downstream breakage
-          results.push({ name: team, schoolCode: null, time });
-        }
-        return;
-      }
-
-      // Original logic for individuals (unchanged)
-      if (cells.length >= 4) {
-        const name = $(cells[1]).text().trim();
-        const schoolCode = normalizeCode($(cells[2]).text());
-        const time = $(cells[3]).text().trim();
-
-        if (name && time && allowedCodes.has(schoolCode)) {
-          results.push({ name, schoolCode, time });
-        }
+    // Choose the first table that has a header row
+    const tables = $('table');
+    let table = null;
+    let headerCells = [];
+    tables.each((ti, t) => {
+      const ths = $(t).find('tr').first().find('th');
+      if (ths.length) {
+        table = t;
+        headerCells = ths
+          .map((i, el) => $(el).text().trim().toLowerCase())
+          .get();
+        return false; // break
       }
     });
 
-    // Deduplicate by name + time (unchanged)
+    if (!table) {
+      console.warn('No table with headers found.');
+      return res.status(200).json([]);
+    }
+
+    // Build header index map
+    const headerIndex = {};
+    headerCells.forEach((h, i) => {
+      const key = h
+        .replace(/\s+/g, ' ')
+        .replace(/[^a-z]/g, ''); // keep only letters
+      // Common aliases -> canonical keys
+      const canonical =
+        key.includes('rank') ? 'rank' :
+        key.includes('name') ? 'name' :
+        key.includes('school') ? 'school' :
+        key.includes('team') ? 'team' :
+        key.includes('time') ? 'time' :
+        key;
+      if (!(canonical in headerIndex)) headerIndex[canonical] = i;
+    });
+
+    console.log('DEBUG headerCells:', headerCells);
+    console.log('DEBUG headerIndex:', headerIndex);
+
+    const timeLike = (s) => {
+      const raw = (s || '').trim().toUpperCase();
+      if (!raw) return false;
+      // Allow standard times and common statuses
+      if (/^(?:NT|DQ|NS|DNF)$/.test(raw)) return true;
+      // Strip trailing course letter if present (e.g., 52.11Y)
+      const t = raw.replace(/[A-Z]$/, '');
+      return /^(\d{1,2}:)?\d{1,2}\.\d{2}$/.test(t);
+    };
+
+    const normalizeTime = (s) => {
+      const raw = (s || '').trim().toUpperCase();
+      if (/^(?:NT|DQ|NS|DNF)$/.test(raw)) return raw;
+      return raw.replace(/[A-Z]$/, ''); // drop trailing course letter if any
+    };
+
+    const looksLikeCode = (s) => {
+      const c = normalizeCode(s);
+      return /^[A-Z0-9]{2,6}$/.test(c) ? c : '';
+    };
+
+    const findAllowedCodeInRow = (cellsText) => {
+      // Try header-labeled school cell first
+      if ('school' in headerIndex) {
+        const v = cellsText[headerIndex.school];
+        const c = looksLikeCode(v);
+        if (c && allowedCodes.has(c)) return c;
+      }
+      // Try header-labeled team cell
+      if ('team' in headerIndex) {
+        const v = cellsText[headerIndex.team];
+        const c = looksLikeCode(v);
+        if (c && allowedCodes.has(c)) return c;
+      }
+      // Fallback: scan any token that matches allowedCodes
+      for (const v of cellsText) {
+        const c = looksLikeCode(v);
+        if (c && allowedCodes.has(c)) return c;
+      }
+      return '';
+    };
+
+    const findTimeInRow = (cellsText) => {
+      // Prefer header-labeled time
+      if ('time' in headerIndex) {
+        const v = cellsText[headerIndex.time];
+        if (timeLike(v)) return normalizeTime(v);
+      }
+      // Else, scan all cells for a time
+      for (const v of cellsText) {
+        if (timeLike(v)) return normalizeTime(v);
+      }
+      return '';
+    };
+
+    const findNameInRow = (cellsText) => {
+      // Prefer header-labeled name
+      if ('name' in headerIndex) {
+        const v = cellsText[headerIndex.name]?.trim();
+        if (v) return v;
+      }
+      // Fallback: choose the longest non-rank, non-time, non-code cell
+      const rankedIdx = 'rank' in headerIndex ? headerIndex.rank : 0;
+      let best = '';
+      cellsText.forEach((v, idx) => {
+        const val = (v || '').trim();
+        if (!val) return;
+        if (idx === rankedIdx) return;
+        if (timeLike(val)) return;
+        const asCode = looksLikeCode(val);
+        if (asCode && allowedCodes.has(asCode)) return;
+        if (val.length > best.length) best = val;
+      });
+      return best;
+    };
+
+    let results = [];
+
+    // Use tbody rows if present; otherwise, skip the header row
+    const rows = $(table).find('tbody tr').length
+      ? $(table).find('tbody tr')
+      : $(table).find('tr').slice(1);
+
+    rows.each((i, row) => {
+      const tds = $(row).find('td');
+      if (!tds.length) return;
+
+      const cellsText = tds
+        .map((ci, td) => $(td).text().replace(/\s+/g, ' ').trim())
+        .get();
+
+      // Skip empty-ish rows
+      if (!cellsText.some(v => v && v.length)) return;
+
+      const time = findTimeInRow(cellsText);
+      const schoolCode = findAllowedCodeInRow(cellsText);
+      const name = findNameInRow(cellsText);
+
+      // Only keep rows that satisfy original constraints
+      if (name && time && schoolCode && allowedCodes.has(schoolCode)) {
+        results.push({ name, schoolCode, time });
+      } else {
+        // Debug minimal info when row doesn't pass
+        console.log('ROW SKIPPED DEBUG:', { cellsText, name, schoolCode, time });
+      }
+    });
+
+    // Deduplicate by name + time
     results = Array.from(
       new Map(results.map(r => [`${r.name}-${r.time}`, r])).values()
     );

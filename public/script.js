@@ -168,6 +168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       showBtn.disabled = true;
 
       const results = await loadResults(apiUrl);
+      console.log(results)
 const unique = Array.from(
   new Map(results.map(item => [
     `${(item.name || '').trim()}-${item.time}`,
@@ -186,6 +187,7 @@ renderTable(unique);
 
   console.log('Click listener attached');
 });
+
 
 
 

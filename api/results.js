@@ -25,7 +25,7 @@ export default async (req, res) => {
         .trim()
         .split('\n')
         .slice(1)
-        .map(line => normalizeCode(line.split(',')[0])) // code now in first column
+        .map(line => normalizeCode(line.split(',')[0]))
         .filter(Boolean)
     );
 
@@ -53,19 +53,19 @@ export default async (req, res) => {
     const tables = $('table');
     console.log(`DEBUG: Found ${tables.length} <table> element(s)`);
 
-    // Grab header text from first table
+    // Inspect first table header (used only to detect relays safely)
     const headerCells = tables.first().find('tr').first().find('th')
       .map((i, el) => $(el).text().trim().toLowerCase())
       .get();
 
-    const isRelay = headerCells.includes('team') && !headerCells.includes('school');
+    // Only treat as relay if the header clearly shows team and NOT name
+    const isRelay = headerCells.includes('team') && !headerCells.includes('name');
 
-    console.log('Detected event type:', isRelay ? 'relay' : 'individual');
+    console.log('Detected event type (conservative):', isRelay ? 'relay' : 'individual');
 
     tables.each((ti, table) => {
       const rowCount = $(table).find('tr').length;
       console.log(`DEBUG: Table[${ti}] has ${rowCount} <tr> row(s)`);
-
       $(table)
         .find('tr')
         .slice(0, 3)
@@ -86,41 +86,38 @@ export default async (req, res) => {
 
     let results = [];
 
+    // Important: keep your original individual parsing intact
     $('table tr').each((i, row) => {
       const cells = $(row).find('td');
+      if (!cells.length) return;
 
-      if (cells.length) {
-        if (isRelay && cells.length >= 3) {
-          // Relay: Rank | Team | Time
-          const team = $(cells[1]).text().trim();
-          const time = $(cells[2]).text().trim();
-          if (team && time) {
-            results.push({ team, time, type: 'relay' });
-          }
-        } else if (!isRelay && cells.length >= 4) {
-          // Individual: Rank | Name | SchoolCode | Time
-          const name = $(cells[1]).text().trim();
-          const schoolCode = normalizeCode($(cells[2]).text());
-          const time = $(cells[3]).text().trim();
+      if (isRelay) {
+        // Relay table typically: Rank | Team | Time (sometimes more cols)
+        // Map conservatively to avoid breaking single-swimmer flow
+        const team = cells.eq(1).text().trim();
+        const time = cells.eq(2).text().trim();
+        if (team && time) {
+          // Preserve original schema keys to avoid downstream breakage
+          results.push({ name: team, schoolCode: null, time });
+        }
+        return;
+      }
 
-          if (name && time && allowedCodes.has(schoolCode)) {
-            results.push({ name, schoolCode, time, type: 'individual' });
-          }
+      // Original logic for individuals (unchanged)
+      if (cells.length >= 4) {
+        const name = $(cells[1]).text().trim();
+        const schoolCode = normalizeCode($(cells[2]).text());
+        const time = $(cells[3]).text().trim();
+
+        if (name && time && allowedCodes.has(schoolCode)) {
+          results.push({ name, schoolCode, time });
         }
       }
     });
 
-    // Deduplicate by relevant fields
+    // Deduplicate by name + time (unchanged)
     results = Array.from(
-      new Map(
-        results.map(r => {
-          const key =
-            r.type === 'relay'
-              ? `${r.team}-${r.time}`
-              : `${r.name}-${r.time}`;
-          return [key, r];
-        })
-      ).values()
+      new Map(results.map(r => [`${r.name}-${r.time}`, r])).values()
     );
 
     res.status(200).json(results);

@@ -40,13 +40,13 @@ async function loadSchoolCodes(csvPath) {
 }
 
 function renderTable(data) {
-  const table = document.querySelector('#resultsTable');
+  const table = document.getElementById('resultsTable');
   const thead = table.querySelector('thead');
   const tbody = table.querySelector('tbody');
 
   const isRelay = data.every(s => !s.name);
 
-  // 🔹 Kill the old header and build fresh
+  // Build thead from scratch
   thead.innerHTML = '';
   const headRow = document.createElement('tr');
   headRow.innerHTML = `
@@ -57,7 +57,7 @@ function renderTable(data) {
   `;
   thead.appendChild(headRow);
 
-  // 🔹 Build table body
+  // Build tbody from scratch
   tbody.innerHTML = '';
   data.forEach((s, idx) => {
     const tr = document.createElement('tr');
@@ -70,6 +70,7 @@ function renderTable(data) {
     tbody.appendChild(tr);
   });
 }
+
 
 
 function renderSchoolKey(schoolData) {
@@ -169,6 +170,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   console.log('Click listener attached');
 });
+
 
 
 

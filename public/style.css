@@ -29,7 +29,7 @@ select, button {
 }
 
 /* Limit width to 80% of the viewport on larger screens and center it */
-.results-wrapper {
+.results-wrapper, .school-key-wrapper {
   width: 80%;
   margin: 0 auto; /* centers it */
 }
@@ -79,7 +79,7 @@ tr:hover {
 /* Force right alignment in both views */
 .link-above-table {
   text-align: right;    /* inline content goes right */
-  width: 100%;          /* make container span the full row */
+  width: 80%;          /* make container span the full row */
 }
 
 .link-above-table a {
@@ -143,6 +143,7 @@ tr:hover {
 
 
 }
+
 
 
 

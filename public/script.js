@@ -6,6 +6,19 @@ async function loadResults(apiUrl) {
   return await res.json();
 }
 
+// NEW: load and parse school codes CSV
+async function loadSchoolCodes(csvPath) {
+  const res = await fetch(csvPath);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch ${csvPath} (${res.status})`);
+  }
+  const csvText = await res.text();
+  const rows = csvText.trim().split('\n').slice(1); // skip header row
+  return rows.map(row => {
+    const [code, name] = row.split(',');
+    return { code: code.trim(), name: name.trim() };
+  });
+}
 
 function renderTable(data) {
   const tbody = document.querySelector('#resultsTable tbody');
@@ -22,6 +35,21 @@ function renderTable(data) {
   });
 }
 
+// NEW: render school key table
+function renderSchoolKey(schoolData) {
+  const tbody = document.querySelector('#schoolKey tbody');
+  if (!tbody) {
+    console.warn('School key table body not found.');
+    return;
+  }
+  tbody.innerHTML = '';
+  schoolData.forEach(({ code, name }) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${code}</td><td>${name}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM fully loaded');
 
@@ -29,30 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const eventSelect = document.getElementById('eventDropdown');
   const courseSelect = document.getElementById('courseDropdown');
   const showBtn = document.getElementById('showResultsBtn');
-
-  fetch('schools.csv')
-  .then(response => response.text())
-  .then(csv => {
-    const rows = csv.trim().split('\n').slice(1); // skip header row
-    const tbody = document.querySelector('#schoolKey tbody');
-
-    rows.forEach(row => {
-      const [code, name] = row.split(',');
-      const tr = document.createElement('tr');
-
-      const tdCode = document.createElement('td');
-      tdCode.textContent = code;
-      const tdName = document.createElement('td');
-      tdName.textContent = name;
-
-      tr.appendChild(tdCode);
-      tr.appendChild(tdName);
-      tbody.appendChild(tr);
-    });
-  })
-  .catch(err => console.error('Error loading school codes:', err));
-
-  
 
   if (!showBtn) {
     console.error('Show Results button not found.');
@@ -77,15 +81,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const apiUrl = `/api/results?org=1&gender=${genderVal}&event=${eventVal}&course=${courseVal}`;
       console.log('Fetching from:', apiUrl);
 
-      // API already returns only allowed schools, no extra filtering needed
+      // Results
       const results = await loadResults(apiUrl);
-
-      // Deduplicate on name + time just in case
       const unique = Array.from(
         new Map(results.map(item => [`${item.name}-${item.time}`, item])).values()
       );
-
       renderTable(unique);
+
+      // School key from CSV (update path if needed)
+      const schoolCodes = await loadSchoolCodes('schools.csv');
+      renderSchoolKey(schoolCodes);
 
     } catch (err) {
       console.error('Error on Show Results click:', err);
@@ -94,5 +99,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
   console.log('Click listener attached');
 });
-
-

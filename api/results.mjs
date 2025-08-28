@@ -155,7 +155,7 @@ export default async (req, res) => {
     const eventLower = (event || '').toLowerCase();
     const headerHasTeam = headerCells.includes('team');
     const headerHasName = headerCells.includes('name');
-    onst isRelay =
+    const isRelay =
     headerHasTeam &&
     !headerHasName &&
     (eventLower.includes('relay') ||

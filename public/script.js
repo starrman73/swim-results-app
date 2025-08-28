@@ -45,7 +45,9 @@ function renderTable(data) {
   const tbody = table.querySelector('tbody');
 
   // Detect relay mode
-  const isRelay = data.every(s => !s.name);
+  //const isRelay = data.every(s => !s.name);
+  const isRelay = data.every(s => !s.name || /^[A-Z]?\s*Relay$/i.test(s.name));
+
 
   // Build header
   thead.innerHTML = `
@@ -168,6 +170,7 @@ renderTable(unique);
 
   console.log('Click listener attached');
 });
+
 
 
 

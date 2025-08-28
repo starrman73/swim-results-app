@@ -39,33 +39,29 @@ async function loadSchoolCodes(csvPath) {
   });
 }
 
-// ----- Renderers -----
-// ----- Renderers -----
 function renderTable(data) {
   const table = document.querySelector('#resultsTable');
+  const thead = table?.querySelector('thead');
   const tbody = table?.querySelector('tbody');
-  if (!tbody) {
-    console.warn('resultsTable tbody not found.');
+  if (!thead || !tbody) {
+    console.warn('resultsTable parts not found.');
     return;
   }
 
-  // Relay if every swimmer.name is falsy
   const isRelay = data.every(swimmer => !swimmer.name);
 
-  // If relay, remove the Name header cell entirely
-  const theadRow = table.querySelector('thead tr');
-  if (theadRow) {
-    const headerCells = theadRow.querySelectorAll('th');
-    if (isRelay && headerCells.length >= 2) {
-      headerCells[1].remove(); // remove Name header
-    } else if (!isRelay && headerCells.length < 4) {
-      // If header was removed previously, re‑add it
-      const nameTh = document.createElement('th');
-      nameTh.textContent = 'Name';
-      theadRow.insertBefore(nameTh, headerCells[1] || null);
-    }
-  }
+  // Build headers fresh
+  thead.innerHTML = '';
+  const headRow = document.createElement('tr');
+  headRow.innerHTML = `
+    <th>Rank</th>
+    ${!isRelay ? '<th>Name</th>' : ''}
+    <th>School</th>
+    <th>Time</th>
+  `;
+  thead.appendChild(headRow);
 
+  // Build body fresh
   tbody.innerHTML = '';
   data.forEach((swimmer, idx) => {
     const tr = document.createElement('tr');
@@ -78,9 +74,6 @@ function renderTable(data) {
     tbody.appendChild(tr);
   });
 }
-
-
-
 
 function renderSchoolKey(schoolData) {
   const tbody = document.querySelector('#schoolKey tbody');
@@ -179,6 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   console.log('Click listener attached');
 });
+
 
 
 

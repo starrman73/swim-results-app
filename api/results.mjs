@@ -168,7 +168,7 @@ export default async (req, res) => {
         // Relay
         const rawTeamCell = cellsText[headerIndex.team] || '';
         schoolCode = normalizeCode(rawTeamCell);
-        name = '---'; // <-- empty string instead of null
+        name = ''; // <-- empty string instead of null
       }
 
       if (!schoolCode || !allowedCodes.has(schoolCode)) return;

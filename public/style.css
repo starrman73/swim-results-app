@@ -102,6 +102,21 @@ tr:hover {
   scroll-behavior: smooth;
 }
 
+  .link-above-table {
+  text-align: right;
+  margin-bottom: 6px;
 }
+
+.link-above-table a {
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.link-above-table a:hover {
+  text-decoration: underline;
+}
+
+}
+
 
 

@@ -90,6 +90,7 @@ export default async (req, res) => {
     console.log('DEBUG cleanedHeaders:', cleanedHeaders);
     console.log('DEBUG headerIndex:', headerIndex);
 
+    // FIX 1: strip parentheses before regex test
     const timeLike = s => {
       const raw = (s || '').trim().toUpperCase();
       if (!raw) return false;
@@ -164,9 +165,15 @@ export default async (req, res) => {
       }
 
       const rawNameCell = headerIndex.name != null ? (cellsText[headerIndex.name] || '').trim() : '';
-      const name = rawNameCell || null; // no placeholder check for athlete names
+      const name = rawNameCell || null;
 
       const schoolCode = findSchoolCodeInRow(cellsText) || null;
+
+      // FIX 2: filter out codes not in CSV
+      if (!schoolCode || !allowedCodes.has(schoolCode)) {
+        console.log('ROW SKIPPED (schoolCode not allowed):', { name, schoolCode });
+        return;
+      }
 
       results.push({ name, schoolCode, time });
     });

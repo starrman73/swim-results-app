@@ -11,27 +11,32 @@ export default async (req, res) => {
       return res.status(400).json({ error: 'Missing required query params' });
     }
 
+    // Normalization function — use for BOTH CSV + scraped values
+    const normalizeCode = str =>
+      (str || '')
+        .toUpperCase()
+        .replace(/[^\w]/g, ''); // keep only A–Z / 0–9
+
     // Load allowed school codes from CSV
     const csvPath = path.join(process.cwd(), 'public', 'division2.csv');
+    const allowedCodes = new Set(
+      fs.readFileSync(csvPath, 'utf8')
+        .replace(/^\uFEFF/, '') // strip BOM if present
+        .trim()
+        .split('\n')
+        .slice(1)
+        .map(line => normalizeCode(line.split(',')[1]))
+        .filter(Boolean)
+    );
 
-    const normalizeCode = str =>
-  (str || '')
-    .toUpperCase()
-    .replace(/[^\w]/g, ''); // drop everything that’s not A–Z/0–9
-
-const allowedCodes = new Set(
-  fs.readFileSync(csvPath, 'utf8')
-    .replace(/^\uFEFF/, '') // strip BOM if present
-    .trim()
-    .split('\n')
-    .slice(1)
-    .map(line => normalizeCode(line.split(',')[1]))
-    .filter(Boolean)
-);
-
+    console.log('DEBUG allowedCodes sample:', [...allowedCodes].slice(0, 15));
 
     // Build native query URL
-    const targetUrl = `https://toptimesbuild.sportstiming.com/reports/report_rankings.php?org=${org}&gender=${encodeURIComponent(gender)}&event=${encodeURIComponent(event)}&lc=${encodeURIComponent(course)}&100course=0`;
+    const targetUrl = `https://toptimesbuild.sportstiming.com/reports/report_rankings.php?org=${org}&gender=${encodeURIComponent(
+      gender
+    )}&event=${encodeURIComponent(event)}&lc=${encodeURIComponent(
+      course
+    )}&100course=0`;
 
     const resp = await fetch(targetUrl);
     const html = await resp.text();
@@ -39,7 +44,11 @@ const allowedCodes = new Set(
 
     // ===== Combined debug block =====
     console.log('================ ENTERED TABLE DEBUG BLOCK ================');
-    console.log('DEBUG: HTML START >>>', html.substring(0, 500), '<<< HTML END SNIPPET');
+    console.log(
+      'DEBUG: HTML START >>>',
+      html.substring(0, 500),
+      '<<< HTML END SNIPPET'
+    );
 
     const tables = $('table');
     console.log(`DEBUG: Found ${tables.length} <table> element(s)`);
@@ -68,19 +77,18 @@ const allowedCodes = new Set(
 
     let results = [];
 
-$('table tr').each((i, row) => {
-  const cells = $(row).find('td');
-  if (cells.length >= 4) {
-    const name = $(cells[1]).text().trim();
-    const schoolCode = $(cells[2]).text().trim().toUpperCase();
-    const time = $(cells[3]).text().trim();
+    $('table tr').each((i, row) => {
+      const cells = $(row).find('td');
+      if (cells.length >= 4) {
+        const name = $(cells[1]).text().trim();
+        const schoolCode = normalizeCode($(cells[2]).text());
+        const time = $(cells[3]).text().trim();
 
-    if (name && time && allowedCodes.has(schoolCode)) {
-      results.push({ name, schoolCode, time });
-    }
-  }
-});
-
+        if (name && time && allowedCodes.has(schoolCode)) {
+          results.push({ name, schoolCode, time });
+        }
+      }
+    });
 
     // Deduplicate by name + time
     results = Array.from(

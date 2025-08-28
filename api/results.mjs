@@ -5,33 +5,23 @@ import path from 'path';
 export default async (req, res) => {
   try {
     const { gender, event, course } = req.query;
-    const org = 1; // South Carolina High School League
+    const org = 1;
 
     if (!gender || !event || !course) {
       return res.status(400).json({ error: 'Missing required query params' });
     }
 
-    const normalizeCode = str =>
-      (str || '').toUpperCase().replace(/[^\w]/g, '');
-
-    const normalizeSchoolName = s =>
-      (s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-
+    const normalizeCode = str => (str || '').toUpperCase().replace(/[^\w]/g, '');
+    const normalizeSchoolName = s => (s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     const isPlaceholder = s => {
       const v = (s || '').trim();
       if (!v) return true;
       const up = v.toUpperCase();
-      return up === 'NULL' || up === 'N/A' || up === 'NA' || up === '-' || up === '—';
+      return ['NULL','N/A','NA','-','—'].includes(up);
     };
 
-    // Load CSV
     const csvPath = path.join(process.cwd(), 'public', 'division2.csv');
-    const csvLines = fs
-      .readFileSync(csvPath, 'utf8')
-      .replace(/^\uFEFF/, '')
-      .trim()
-      .split('\n')
-      .slice(1);
+    const csvLines = fs.readFileSync(csvPath, 'utf8').replace(/^\uFEFF/, '').trim().split('\n').slice(1);
 
     const allowedCodes = new Set();
     const schoolNameToCode = new Map();
@@ -52,9 +42,7 @@ export default async (req, res) => {
 
     const targetUrl = `https://toptimesbuild.sportstiming.com/reports/report_rankings.php?org=${org}&gender=${encodeURIComponent(
       gender
-    )}&event=${encodeURIComponent(event)}&lc=${encodeURIComponent(
-      course
-    )}&100course=0`;
+    )}&event=${encodeURIComponent(event)}&lc=${encodeURIComponent(course)}&100course=0`;
 
     const resp = await fetch(targetUrl);
     const html = await resp.text();
@@ -64,7 +52,6 @@ export default async (req, res) => {
     console.log('Status:', resp.status);
     console.log('HTML length:', html.length);
 
-    // Pick header row robustly
     let headerCells = [];
     let table = null;
     $('table').each((ti, t) => {
@@ -82,15 +69,14 @@ export default async (req, res) => {
       return res.status(200).json([]);
     }
 
-    const normalizeHeader = h =>
-      (h || '').toLowerCase().trim().replace(/\s+/g, '').replace(/\(.*?\)/g, '');
+    const normalizeHeader = h => (h || '').toLowerCase().trim().replace(/\s+/g, '').replace(/\(.*?\)/g, '');
 
     function buildHeaderIndex(cells) {
       const cleaned = cells.map(normalizeHeader);
       const idx = {};
       cleaned.forEach((h, i) => {
         if (idx.rank == null && (h === '#' || h === 'rank')) idx.rank = i;
-        if (idx.name == null && (h === 'name' || h === 'swimmer' || h === 'athlete')) idx.name = i; // Added 'athlete'
+        if (idx.name == null && (h === 'name' || h === 'swimmer' || h === 'athlete')) idx.name = i;
         if (idx.school == null && (h === 'school' || h === 'highschool' || h === 'hs')) idx.school = i;
         if (idx.team == null && h === 'team') idx.team = i;
         if (idx.time == null && (h === 'time' || h.startsWith('time'))) idx.time = i;
@@ -100,20 +86,15 @@ export default async (req, res) => {
 
     const { idx: headerIndex, cleaned: cleanedHeaders } = buildHeaderIndex(headerCells);
 
-    // Relay detection based on event param
-    const eventStr = decodeURIComponent(event || '');
-    const isRelayByEvent = /^R:/i.test(eventStr);
-
     console.log('DEBUG headerCells:', headerCells);
     console.log('DEBUG cleanedHeaders:', cleanedHeaders);
     console.log('DEBUG headerIndex:', headerIndex);
-    console.log('Relay detection (by event):', isRelayByEvent);
 
     const timeLike = s => {
       const raw = (s || '').trim().toUpperCase();
       if (!raw) return false;
       if (/^(?:NT|DQ|NS|DNF)$/.test(raw)) return true;
-      const t = raw.replace(/\(.*?\)/g, '').replace(/[A-Z]$/, ''); // strip parentheses + trailing letter
+      const t = raw.replace(/\(.*?\)/g, '').replace(/[A-Z]$/, '');
       return /^(\d{1,2}:)?\d{1,2}\.\d{2}$/.test(t);
     };
 
@@ -176,26 +157,6 @@ export default async (req, res) => {
 
       if (!cellsText.some(v => v && v.length)) return;
 
-      if (isRelayByEvent && ('team' in headerIndex)) {
-        const team =
-          (headerIndex.team != null ? cellsText[headerIndex.team] : cellsText[1]) || '';
-        const timeCell =
-          (headerIndex.time != null ? cellsText[headerIndex.time] : '') ||
-          cellsText.find(timeLike) ||
-          '';
-
-        if (team && timeCell) {
-          results.push({
-            name: team.trim(),
-            schoolCode: null,
-            time: normalizeTime(timeCell)
-          });
-        } else {
-          console.log('ROW SKIPPED RELAY DEBUG:', { cellsText, team, timeCell });
-        }
-        return;
-      }
-
       const time = findTimeInRow(cellsText);
       if (!time) {
         console.log('ROW SKIPPED (no time):', cellsText);
@@ -203,15 +164,11 @@ export default async (req, res) => {
       }
 
       const rawNameCell = headerIndex.name != null ? (cellsText[headerIndex.name] || '').trim() : '';
-      const name = rawNameCell && !isPlaceholder(rawNameCell) ? rawNameCell : null;
+      const name = rawNameCell || null; // no placeholder check for athlete names
 
-      let schoolCode = findSchoolCodeInRow(cellsText) || null;
+      const schoolCode = findSchoolCodeInRow(cellsText) || null;
 
-      results.push({
-        name,
-        schoolCode,
-        time
-      });
+      results.push({ name, schoolCode, time });
     });
 
     results = Array.from(

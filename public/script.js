@@ -1,34 +1,9 @@
-async function loadCSV(url) {
-  const res = await fetch(url);
-  const text = await res.text();
-  return text
-    .trim()
-    .split('\n')
-    .slice(1)
-    .map(line => line.split(',')[0]); // schoolCode from first column
-}
-
 async function loadResults(apiUrl) {
   const res = await fetch(apiUrl);
   if (!res.ok) {
     throw new Error(`Failed to fetch ${apiUrl} (${res.status})`);
   }
   return await res.json();
-}
-
-function populateDropdown(selectElem, items, defaultLabel) {
-  selectElem.innerHTML = '';
-  const defaultOpt = document.createElement('option');
-  defaultOpt.value = '';
-  defaultOpt.textContent = defaultLabel;
-  selectElem.appendChild(defaultOpt);
-
-  items.forEach(item => {
-    const opt = document.createElement('option');
-    opt.value = item;
-    opt.textContent = item;
-    selectElem.appendChild(opt);
-  });
 }
 
 function renderTable(data) {
@@ -46,87 +21,51 @@ function renderTable(data) {
   });
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM fully loaded');
 
-  try {
-    // --- Load CSV of allowed school codes ---
-    const allowedCodes = new Set(await loadCSV('division2.csv'));
-    console.log('Loaded school codes:', allowedCodes.size);
+  const genderSelect = document.getElementById('genderDropdown');
+  const eventSelect = document.getElementById('eventDropdown');
+  const courseSelect = document.getElementById('courseDropdown');
+  const showBtn = document.getElementById('showResultsBtn');
 
-    const genderSelect = document.getElementById('genderDropdown');
-    const eventSelect = document.getElementById('eventDropdown');
-    const courseSelect = document.getElementById('courseDropdown');
-    const showBtn = document.getElementById('showResultsBtn');
-
-    if (!showBtn) {
-      console.error('Show Results button not found.');
-      return;
-    }
-
- // --- Click handler for "Show Results" ---
-document.getElementById('showResultsBtn').addEventListener('click', async () => {
-  try {
-    const genderVal = document.getElementById('genderDropdown').value;
-    const eventVal  = document.getElementById('eventDropdown').value;
-    const courseVal = document.getElementById('courseDropdown').value;
-
-    if (!genderVal || !eventVal || !courseVal) {
-      alert('Please select gender, event, and course.');
-      return;
-    }
-console.log({
-  genderVal,
-  eventVal,
-  courseVal
-});
-
-    console.log('Raw event value from dropdown:', document.getElementById('eventDropdown').value);
-
-    const params = new URLSearchParams({
-      org: 1,                // default to 1
-      gender: genderVal,
-      event: eventVal,       // pulled directly from dropdown value
-      course: courseVal
-    });
-
-    //const url = `/api/results?org=1&gender=${genderVal}&event=${eventVal}&course=${courseVal}`;
-
-    const apiUrl = `/api/results?org=1&gender=${genderVal}&event=${eventVal}&course=${courseVal}`;
-    console.log('Fetching from:', apiUrl);
-
-    const results = await loadResults(apiUrl);
-
-    const filtered = results.filter(r => allowedCodes.has(r.schoolCode));
-    const unique = Array.from(new Map(
-      filtered.map(item => [`${item.name}-${item.time}`, item])
-    ).values());
-
-    renderTable(unique);
-
-  } catch (err) {
-    console.error('Error on Show Results click:', err);
+  if (!showBtn) {
+    console.error('Show Results button not found.');
+    return;
   }
+
+  // --- Click handler for "Show Results" ---
+  showBtn.addEventListener('click', async () => {
+    try {
+      const genderVal = genderSelect.value;
+      const eventVal = eventSelect.value;
+      const courseVal = courseSelect.value;
+
+      if (!genderVal || !eventVal || !courseVal) {
+        alert('Please select gender, event, and course.');
+        return;
+      }
+
+      console.log({ genderVal, eventVal, courseVal });
+      console.log('Raw event value from dropdown:', eventVal);
+
+      const apiUrl = `/api/results?org=1&gender=${genderVal}&event=${eventVal}&course=${courseVal}`;
+      console.log('Fetching from:', apiUrl);
+
+      // API already returns only allowed schools, no extra filtering needed
+      const results = await loadResults(apiUrl);
+
+      // Deduplicate on name + time just in case
+      const unique = Array.from(
+        new Map(results.map(item => [`${item.name}-${item.time}`, item])).values()
+      );
+
+      renderTable(unique);
+
+    } catch (err) {
+      console.error('Error on Show Results click:', err);
+    }
+  });
+
+  console.log('Click listener attached');
 });
-
-
-
-
-    console.log('Click listener attached');
-
-  } catch (err) {
-    console.error('Initialization error:', err);
-  }
-});
-
-
-
-
-
-
-
-
-
-
-
-

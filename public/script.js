@@ -1,3 +1,5 @@
+import Swal from 'sweetalert2';
+
 async function loadResults(apiUrl) {
   const res = await fetch(apiUrl);
   if (!res.ok) {
@@ -79,7 +81,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       const courseVal = courseSelect.value;
 
       if (!genderVal || !eventVal || !courseVal) {
-        alert('Please select gender, event, and course.');
+        Swal.fire({
+          icon: 'warning',
+          title: 'Missing Information',
+          text: 'Please select gender, event, and course.',
+        });
         return;
       }
 
@@ -102,3 +108,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   console.log('Click listener attached');
 });
+

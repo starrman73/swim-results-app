@@ -86,7 +86,17 @@ tr:hover {
     padding: 0.4rem;
   }
 
-  .legend-title {
-    font-size: 0.9rem;
-  }
+  .school-key-wrapper {
+  width: 90%;
+  margin: 2rem auto 0 auto;
 }
+
+.legend-title {
+  margin: 0 0 0.5rem 0;
+  font-weight: normal;
+  font-size: 1rem;
+  color: #666;
+}
+
+}
+

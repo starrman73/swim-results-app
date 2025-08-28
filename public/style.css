@@ -140,9 +140,15 @@ tr:hover {
   scroll-behavior: smooth;
 }
 
+.results-wrapper, .school-key-wrapper {
+  width: 100%;
+  margin: 0 auto; /* centers it */
+}
+
 
 
 }
+
 
 
 

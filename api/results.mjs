@@ -24,7 +24,7 @@ export default async (req, res) => {
       return up === 'NULL' || up === 'N/A' || up === 'NA' || up === '-' || up === '—';
     };
 
-    // Load CSV: expect first column=code, second column=school name
+    // Load CSV: first col = code, remaining cols = school name (tolerate commas)
     const csvPath = path.join(process.cwd(), 'public', 'division2.csv');
     const csvLines = fs
       .readFileSync(csvPath, 'utf8')
@@ -41,7 +41,7 @@ export default async (req, res) => {
       const parts = line.split(',');
       const code = normalizeCode(parts[0]);
       if (code) allowedCodes.add(code);
-      const name = parts[1] ? parts.slice(1).join(',').trim() : ''; // tolerate commas in name
+      const name = parts[1] ? parts.slice(1).join(',').trim() : '';
       if (name) {
         const key = normalizeSchoolName(name);
         if (key && code) schoolNameToCode.set(key, code);
@@ -64,7 +64,7 @@ export default async (req, res) => {
     console.log('Status:', resp.status);
     console.log('HTML length:', html.length);
 
-    // Grab first table with header cells
+    // Find first table with header cells
     const tables = $('table');
     let table = null;
     let headerCells = [];
@@ -132,12 +132,10 @@ export default async (req, res) => {
     const looksLikeHumanName = s => {
       const v = (s || '').trim();
       if (!v) return false;
-      if (/[a-z]/.test(v)) return true;        // has lowercase
-      if (/\s/.test(v)) return true;           // has space (first last)
-      if (/[,'-]\s?/.test(v)) return true;     // has punctuation typical of names
-      // Reject short all-caps tokens that are likely codes
-      if (/^[A-Z0-9]{2,6}$/.test(v)) return false;
-      // Longer strings without spaces are probably not names either
+      if (/[a-z]/.test(v)) return true;        // lowercase letters
+      if (/\s/.test(v)) return true;           // contains space
+      if (/[,'-]\s?/.test(v)) return true;     // common name punctuation
+      if (/^[A-Z0-9]{2,6}$/.test(v)) return false; // short all-caps likely code
       return v.length > 8;
     };
 
@@ -158,9 +156,9 @@ export default async (req, res) => {
       return '';
     };
 
-    // Individuals: derive school code from School col, or map school name -> code, or Name col if it's a code
+    // Individuals: derive school code from School col (by code or mapping), else Team, else other cells (excluding Name)
     const findSchoolCodeInRow = cellsText => {
-      // Explicit School column
+      // 1) School column
       if (headerIndex.school != null) {
         const rawSchool = cellsText[headerIndex.school];
         if (!isPlaceholder(rawSchool)) {
@@ -170,21 +168,16 @@ export default async (req, res) => {
           if (mapped) return mapped;
         }
       }
-      // Name column might be a code (privacy-masked tables)
-      if (headerIndex.name != null) {
-        const rawName = cellsText[headerIndex.name];
-        const asCode = looksLikeCode(rawName);
-        if (asCode) return asCode;
-      }
-      // Team column fallback
+      // 2) Team column fallback
       if (headerIndex.team != null) {
         const rawTeam = cellsText[headerIndex.team];
         const asCode = looksLikeCode(rawTeam);
         if (asCode) return asCode;
       }
-      // Any cell
-      for (const v of cellsText) {
-        const c = looksLikeCode(v);
+      // 3) Any other cell (exclude Name index to avoid grabbing the privacy code here)
+      for (let i = 0; i < cellsText.length; i++) {
+        if (headerIndex.name != null && i === headerIndex.name) continue;
+        const c = looksLikeCode(cellsText[i]);
         if (c) return c;
       }
       return '';
@@ -193,8 +186,7 @@ export default async (req, res) => {
     const findNameInRow = cellsText => {
       if (headerIndex.name != null) {
         const raw = (cellsText[headerIndex.name] || '').trim();
-        // If the "Name" cell is actually a school code, don't use it as a person name
-        if (looksLikeCode(raw) && !looksLikeHumanName(raw)) return '';
+        if (looksLikeCode(raw) && !looksLikeHumanName(raw)) return ''; // don't use codes as names
         if (looksLikeHumanName(raw)) return raw;
       }
       // Heuristic fallback: pick longest non-time, non-code, non-rank cell
@@ -247,25 +239,23 @@ export default async (req, res) => {
 
       // Individuals
       const time = findTimeInRow(cellsText);
-      const schoolCode = findSchoolCodeInRow(cellsText) || null;
+      let schoolCode = findSchoolCodeInRow(cellsText) || null;
+      let name = findNameInRow(cellsText) || null;
 
-      // If Name cell is a code and School is empty, treat it as schoolCode and leave name blank
-      let name = findNameInRow(cellsText);
+      // Critical fix: if School is empty and Name cell is a code, treat that code as schoolCode and blank the person name
       if (!schoolCode && headerIndex.name != null) {
-        const raw = (cellsText[headerIndex.name] || '').trim();
-        if (looksLikeCode(raw) && !looksLikeHumanName(raw)) {
-          // use the code from Name as schoolCode
-          const codeFromName = looksLikeCode(raw);
-          if (codeFromName) {
-            name = ''; // no person name available
-          }
+        const rawNameCell = (cellsText[headerIndex.name] || '').trim();
+        const codeFromName = looksLikeCode(rawNameCell);
+        if (codeFromName) {
+          schoolCode = codeFromName;
+          name = null; // do not display the code as a name
         }
       }
 
       if (time) {
         results.push({
-          name: name || null,
-          schoolCode: schoolCode,
+          name,
+          schoolCode,
           time
         });
       } else {
@@ -277,7 +267,7 @@ export default async (req, res) => {
     results = Array.from(
       new Map(
         results.map(r => [
-          `${(r.name && r.name.trim()) || r.schoolCode}-${r.time}`,
+          `${(r.name && r.name.trim()) || r.schoolCode || 'UNKNOWN'}-${r.time}`,
           r
         ])
       ).values()

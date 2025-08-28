@@ -1,3 +1,5 @@
+Script.js working copy
+
 // ----- Spinner helpers -----
 function showSpinner() {
   const tbody = document.getElementById('resultsBody');
@@ -39,21 +41,31 @@ async function loadSchoolCodes(csvPath) {
   });
 }
 
-// Updated renderTable function
 function renderTable(data) {
-  console.log('renderTable incoming data length:', data.length);
-  console.log('renderTable data names:', data.map(s => s.name));
+   console.log('renderTable incoming data length:', data.length);
   console.table(data);
   const table = document.getElementById('resultsTable');
   const thead = table.querySelector('thead');
   const tbody = table.querySelector('tbody');
 
-  const isRelay = data.every(s => {
-    console.log('name value:', JSON.stringify(s.name));
-    return !s.name || /^[A-Z]?\s*Relay$/i.test(s.name);
-  });
-  console.log('Final isRelay result:', isRelay);
+  // Detect relay mode
+  console.log('type of data:', typeof data);
+console.log('isArray?', Array.isArray(data));
+console.log('data length:', data.length);
+console.log('data contents:', data);
 
+  //const isRelay = data.every(s => !s.name);
+  //const isRelay = data.every(s => !s.name || /^[A-Z]?\s*Relay$/i.test(s.name));
+  const isRelay = data.every(s => {
+  console.log('name value:', JSON.stringify(s.name));
+  return !s.name || /^[A-Z]?\s*Relay$/i.test(s.name);
+});
+
+console.log('Final isRelay result:', isRelay);
+  
+
+
+  // Build header
   thead.innerHTML = `
     <tr>
       <th>Rank</th>
@@ -63,15 +75,17 @@ function renderTable(data) {
     </tr>
   `;
 
+  // Build body
   tbody.innerHTML = data.map((s, idx) => `
     <tr>
       <td>${idx + 1}</td>
-      ${!isRelay ? `<td>${s.name ?? ''}</td>` : ''}
-      <td>${s.schoolCode ?? ''}</td>
-      <td>${s.time ?? ''}</td>
+      ${!isRelay ? `<td>${s.name || ''}</td>` : ''}
+      <td>${s.schoolCode || ''}</td>
+      <td>${s.time || ''}</td>
     </tr>
   `).join('');
 }
+
 function renderSchoolKey(schoolData) {
   const tbody = document.querySelector('#schoolKey tbody');
   if (!tbody) {
@@ -112,104 +126,61 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-// In the showBtn click handler
-showBtn.addEventListener('click', async () => {
-  console.log('Show Results click handler START');
-  const genderVal = genderSelect?.value;
-  const eventVal = eventSelect?.value;
-  const courseVal = courseSelect?.value;
+  // --- Click handler for "Show Results" ---
+  showBtn.addEventListener('click', async () => {
+     console.log('Show Results click handler START');
+    const genderVal = genderSelect?.value;
+    const eventVal = eventSelect?.value;
+    const courseVal = courseSelect?.value;
 
-  const warnMissing = () => {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Missing Information',
-      text: 'Please select gender, event, and course.',
-      width: 'min(90vw, 420px)',
-      customClass: {
-        popup: 'swal-compact',
-        title: 'swal-compact-title',
-        confirmButton: 'swal-compact-btn',
-      },
+    const warnMissing = () => {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Missing Information',
+        text: 'Please select gender, event, and course.',
+        width: 'min(90vw, 420px)',
+        customClass: {
+          popup: 'swal-compact',
+          title: 'swal-compact-title',
+          confirmButton: 'swal-compact-btn',
+        },
+      });
+    };
+
+    if (!genderVal || !eventVal || !courseVal) {
+      warnMissing();
+      return;
+    }
+
+    console.log({ genderVal, eventVal, courseVal });
+    console.log('Raw event value from dropdown:', eventVal);
+
+    // Build a safe, correctly delimited query string
+    const params = new URLSearchParams({
+      org: '1',
+      gender: genderVal,
+      event: eventVal,
+      course: courseVal,
     });
-  };
+    const apiUrl = `/api/results?${params.toString()}`;
+    console.log('Fetching from:', apiUrl);
 
-  if (!genderVal || !eventVal || !courseVal) {
-    warnMissing();
-    return;
-  }
+    try {
+      showSpinner();
+      showBtn.disabled = true;
 
-  console.log({ genderVal, eventVal, courseVal });
-  console.log('Raw event value from dropdown:', eventVal);
-
-  const params = new URLSearchParams({
-    org: '1',
-    gender: genderVal,
-    event: eventVal,
-    course: courseVal,
-  });
-  const apiUrl = `/api/results?${params.toString()}`;
-  console.log('Fetching from:', apiUrl);
-
-  try {
-    showSpinner();
-    showBtn.disabled = true;
-
-    const results = await loadResults(apiUrl);
-    console.log('Raw API results:', JSON.stringify(results, null, 2));
-
-    const unique = Array.from(
-      new Map(
-        results
-          .filter(item => item && typeof item === 'object') // Guard against undefined/null items
-          .map(item => [
-            `${item.name === null || item.name === 'null' ? '' : item.name}-${item.time ?? ''}`,
-            { ...item, name: item.name === null || item.name === 'null' ? '' : item.name }
-          ])
-      ).values()
-    );
-    console.log('Transformed unique array:', JSON.stringify(unique, null, 2));
-    renderTable(unique);
-  } catch (err) {
-    console.error('Error on Show Results click:', err);
-  } finally {
-    hideSpinner();
-    showBtn.disabled = false;
-  }
-});
-
-// Updated renderTable function
-function renderTable(data) {
-  console.log('renderTable incoming data length:', data.length);
-  console.log('renderTable data names:', data.map(s => s.name));
-  console.table(data);
-  const table = document.getElementById('resultsTable');
-  const thead = table.querySelector('thead');
-  const tbody = table.querySelector('tbody');
-
-  const isRelay = data.every(s => {
-    console.log('name value:', JSON.stringify(s.name));
-    return !s.name || /^[A-Z]?\s*Relay$/i.test(s.name);
-  });
-  console.log('Final isRelay result:', isRelay);
-
-  thead.innerHTML = `
-    <tr>
-      <th>Rank</th>
-      ${!isRelay ? '<th>Name</th>' : ''}
-      <th>School</th>
-      <th>Time</th>
-    </tr>
-  `;
-
-  tbody.innerHTML = data.map((s, idx) => `
-    <tr>
-      <td>${idx + 1}</td>
-      ${!isRelay ? `<td>${s.name ?? ''}</td>` : ''}
-      <td>${s.schoolCode ?? ''}</td>
-      <td>${s.time ?? ''}</td>
-    </tr>
-  `).join('');
-}
+      const results = await loadResults(apiUrl);
+      console.log(results)
+const unique = Array.from(
+  new Map(
+    results
+      .filter(item => item && typeof item === 'object') // Guard against undefined/null items
+      .map(item => [
+        `${item.name === null ? '' : item.name}-${item.time ?? ''}`, // Key: null name -> '', null time -> ''
+        { ...item, name: item.name === null ? '' : item.name } // Value: null name -> ''
+      ])
+  ).values()
+);
 console.log('About to call renderTable', unique.length, unique);
 renderTable(unique);
     } catch (err) {

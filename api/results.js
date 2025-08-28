@@ -28,6 +28,12 @@ export default async (req, res) => {
     const html = await resp.text();
     const $ = cheerio.load(html);
 
+    console.log('Target URL:', targetUrl);
+    console.log('Status:', resp.status);
+    console.log('HTML length:', html.length);
+    console.log('Snippet:', html.substring(0, 300));
+
+
     let results = [];
 
     $('table tr').each((i, row) => {

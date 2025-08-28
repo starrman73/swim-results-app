@@ -1,6 +1,6 @@
 // ----- Spinner helpers -----
 function showSpinner() {
-  const tbody = document.getElementById('results-wrapper');
+  const tbody = document.getElementById('resultsBody');
   if (tbody) {
     tbody.innerHTML = `
       <tr id="spinnerRow">
@@ -156,6 +156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   console.log('Click listener attached');
 });
+
 
 
 

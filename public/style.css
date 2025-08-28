@@ -95,7 +95,7 @@ tr:hover {
 
 
 /* Mobile styles */
-@media (max-width: 600px) {
+@media (max-width: 500px) {
 
   .swal-compact { font-size: 0.95rem !important; }
   .swal-compact-title { font-size: 1.1rem !important; }
@@ -137,6 +137,7 @@ tr:hover {
 
 
 }
+
 
 
 

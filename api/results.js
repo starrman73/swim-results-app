@@ -24,7 +24,7 @@ export default async (req, res) => {
         .replace(/^\uFEFF/, '') // strip BOM if present
         .trim()
         .split('\n')
-        .slice(1)
+        .slice(0)
         .map(line => normalizeCode(line.split(',')[1]))
         .filter(Boolean)
     );

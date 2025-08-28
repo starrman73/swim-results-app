@@ -126,6 +126,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // --- Click handler for "Show Results" ---
   showBtn.addEventListener('click', async () => {
+     console.log('Show Results click handler START');
     const genderVal = genderSelect?.value;
     const eventVal = eventSelect?.value;
     const courseVal = courseSelect?.value;
@@ -173,6 +174,7 @@ const unique = Array.from(
     { ...item, name: item.name || '' }   // force empty string instead of null
   ])).values()
 );
+console.log('About to call renderTable', unique.length, unique);
 renderTable(unique);
     } catch (err) {
       console.error('Error on Show Results click:', err);
@@ -184,6 +186,7 @@ renderTable(unique);
 
   console.log('Click listener attached');
 });
+
 
 
 

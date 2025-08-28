@@ -151,10 +151,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       showBtn.disabled = true;
 
       const results = await loadResults(apiUrl);
-      const unique = Array.from(
-        new Map(results.map(item => [`${item.name}-${item.time}`, item])).values()
-      );
-      renderTable(unique);
+const unique = Array.from(
+  new Map(results.map(item => [
+    `${(item.name || '').trim()}-${item.time}`,
+    { ...item, name: item.name || '' }   // force empty string instead of null
+  ])).values()
+);
+renderTable(unique);
     } catch (err) {
       console.error('Error on Show Results click:', err);
     } finally {
@@ -165,6 +168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   console.log('Click listener attached');
 });
+
 
 
 

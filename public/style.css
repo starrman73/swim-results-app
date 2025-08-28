@@ -66,6 +66,28 @@ tr:hover {
 .school-key-wrapper {
   margin-top: 1.5rem;
 }
+  .link-above-table {
+  margin-bottom: 6px;
+}
+
+/* Force right alignment in both views */
+.link-above-table {
+  text-align: right;    /* inline content goes right */
+  width: 100%;          /* make container span the full row */
+}
+
+.link-above-table a {
+  display: inline-block; /* so it doesn't stretch full width */
+}
+
+.link-above-table a {
+  font-weight: normal;
+  text-decoration: none;
+}
+
+.link-above-table a:hover {
+  text-decoration: underline;
+}
 
 /* Mobile styles */
 @media (max-width: 600px) {
@@ -102,30 +124,10 @@ tr:hover {
   scroll-behavior: smooth;
 }
 
-  .link-above-table {
-  margin-bottom: 6px;
-}
 
-/* Force right alignment in both views */
-.link-above-table {
-  text-align: right;    /* inline content goes right */
-  width: 100%;          /* make container span the full row */
-}
-
-.link-above-table a {
-  display: inline-block; /* so it doesn't stretch full width */
-}
-
-.link-above-table a {
-  font-weight: normal;
-  text-decoration: none;
-}
-
-.link-above-table a:hover {
-  text-decoration: underline;
-}
 
 }
+
 
 
 

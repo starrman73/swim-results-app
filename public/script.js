@@ -46,18 +46,29 @@ function renderTable(data) {
     console.warn('resultsTable tbody not found.');
     return;
   }
+
+  // Determine if this is a relay dataset
+  const isRelay = data.every(swimmer => !swimmer.name);
+
   tbody.innerHTML = '';
   data.forEach((swimmer, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${idx + 1}</td>
-      <td>${swimmer.name}</td>
+      ${!isRelay ? `<td>${swimmer.name}</td>` : ''}
       <td>${swimmer.schoolCode}</td>
       <td>${swimmer.time}</td>
     `;
     tbody.appendChild(tr);
   });
+
+  // Optionally hide the table header cell for Name as well
+  const nameHeader = document.querySelector('#resultsTable thead th.name-col');
+  if (nameHeader) {
+    nameHeader.style.display = isRelay ? 'none' : '';
+  }
 }
+
 
 function renderSchoolKey(schoolData) {
   const tbody = document.querySelector('#schoolKey tbody');
@@ -156,6 +167,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   console.log('Click listener attached');
 });
+
 
 
 

@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderTable(unique);
 
       // School key from CSV (update path if needed)
-      const schoolCodes = await loadSchoolCodes('schools.csv');
+      const schoolCodes = await loadSchoolCodes('division2.csv');
       renderSchoolKey(schoolCodes);
 
     } catch (err) {
@@ -99,3 +99,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
   console.log('Click listener attached');
 });
+

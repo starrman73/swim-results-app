@@ -28,6 +28,12 @@ select, button {
   overflow-x: auto; /* horizontal scroll if table is wider than screen */
 }
 
+/* Limit width to 80% of the viewport on larger screens and center it */
+.results-wrapper {
+  width: 80%;
+  margin: 0 auto; /* centers it */
+}
+
 table {
   border-collapse: collapse;
   width: 100%;
@@ -137,6 +143,7 @@ tr:hover {
 
 
 }
+
 
 
 

@@ -169,11 +169,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const results = await loadResults(apiUrl);
       console.log(results)
-const unique = Array.from(
-  new Map(results.map(item => [
-    `${(item.name || '').trim()}-${item.time}`,
-    { ...item, name: item.name || '' }   // force empty string instead of null
-  ])).values()
+      const unique = Array.from(
+        new Map(results.map(item => [`${(item.name || '').trim()}-${item.time}`,
+        { ...item, name: item.name === null ? '' : item.name }   // force empty string instead of null
+      ])).values()
 );
 console.log('About to call renderTable', unique.length, unique);
 renderTable(unique);
@@ -187,6 +186,7 @@ renderTable(unique);
 
   console.log('Click listener attached');
 });
+
 
 
 

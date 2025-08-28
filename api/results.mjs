@@ -101,13 +101,18 @@ export default async (req, res) => {
 
     const { idx: headerIndex, cleaned: cleanedHeaders } = buildHeaderIndex(headerCells);
 
-    const detectRelay = idx => idx.team != null && idx.name == null;
-    const isRelay = detectRelay(headerIndex);
+    // Relay detection based on event param (authoritative), not headers
+    const eventStr = decodeURIComponent(event || '');
+    const isRelayByEvent = /^R:/i.test(eventStr);
 
     console.log('DEBUG headerCells:', headerCells);
     console.log('DEBUG cleanedHeaders:', cleanedHeaders);
     console.log('DEBUG headerIndex:', headerIndex);
-    console.log('Relay table:', isRelay);
+    console.log('Relay detection (by event):', isRelayByEvent);
+
+    if (isRelayByEvent && !('team' in headerIndex)) {
+      console.warn('Relay event indicated, but no Team column found. Falling back to individual parsing.');
+    }
 
     const timeLike = s => {
       const raw = (s || '').trim().toUpperCase();
@@ -188,7 +193,8 @@ export default async (req, res) => {
 
       if (!cellsText.some(v => v && v.length)) return;
 
-      if (isRelay) {
+      // Only treat as relay if event indicates relay AND Team column exists
+      if (isRelayByEvent && ('team' in headerIndex)) {
         const team =
           (headerIndex.team != null ? cellsText[headerIndex.team] : cellsText[1]) || '';
         const timeCell =

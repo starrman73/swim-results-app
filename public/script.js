@@ -6,6 +6,7 @@ async function loadResults(apiUrl) {
   return await res.json();
 }
 
+
 function renderTable(data) {
   const tbody = document.querySelector('#resultsTable tbody');
   tbody.innerHTML = '';
@@ -28,6 +29,30 @@ document.addEventListener('DOMContentLoaded', () => {
   const eventSelect = document.getElementById('eventDropdown');
   const courseSelect = document.getElementById('courseDropdown');
   const showBtn = document.getElementById('showResultsBtn');
+
+  fetch('schools.csv')
+  .then(response => response.text())
+  .then(csv => {
+    const rows = csv.trim().split('\n').slice(1); // skip header row
+    const tbody = document.querySelector('#schoolKey tbody');
+
+    rows.forEach(row => {
+      const [code, name] = row.split(',');
+      const tr = document.createElement('tr');
+
+      const tdCode = document.createElement('td');
+      tdCode.textContent = code;
+      const tdName = document.createElement('td');
+      tdName.textContent = name;
+
+      tr.appendChild(tdCode);
+      tr.appendChild(tdName);
+      tbody.appendChild(tr);
+    });
+  })
+  .catch(err => console.error('Error loading school codes:', err));
+
+  
 
   if (!showBtn) {
     console.error('Show Results button not found.');
@@ -69,4 +94,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
   console.log('Click listener attached');
 });
+
 

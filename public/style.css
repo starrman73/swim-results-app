@@ -106,11 +106,14 @@ tr:hover {
   margin-bottom: 6px;
 }
 
-  .link-above-table {
-  text-align: right;
+/* Force right alignment in both views */
+.link-above-table {
+  text-align: right;    /* inline content goes right */
+  width: 100%;          /* make container span the full row */
 }
+
 .link-above-table a {
-  display: inline-block; /* optional, keeps it from full-width stretching */
+  display: inline-block; /* so it doesn't stretch full width */
 }
 
 .link-above-table a {
@@ -123,6 +126,7 @@ tr:hover {
 }
 
 }
+
 
 
 

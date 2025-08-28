@@ -1,5 +1,3 @@
-import Swal from 'sweetalert2';
-
 async function loadResults(apiUrl) {
   const res = await fetch(apiUrl);
   if (!res.ok) {
@@ -108,4 +106,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   console.log('Click listener attached');
 });
+
 

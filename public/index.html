@@ -5,83 +5,68 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>South Carolina High School - Division 2 Swim Rankings</title>
   <link rel="stylesheet" href="/style.css" />
-
-
 </head>
 <body>
   <h1>South Carolina High School - Division 2 Swim Rankings</h1>
 
-<div class="filters">
-  <select id="genderDropdown">
-    <option value="">Select Gender</option>
-    <option value="M">Boys</option>
-    <option value="F">Girls</option>
-    <option value="X">Mixed</option>
-  </select>
+  <div class="filters">
+    <select id="genderDropdown">
+      <option value="">Select Gender</option>
+      <option value="M">Boys</option>
+      <option value="F">Girls</option>
+      <option value="X">Mixed</option>
+    </select>
 
-  <select id="eventDropdown">
-    <option value="">Select Event</option>
-    <option value="I:A:50">50 Free</option>
-    <option value="I:A:100">100 Free</option>
-    <option value="I:A:200">200 Free</option>
-    <option value="I:A:500">500 Free</option>
-    <option value="I:B:100">100 Back</option>
-    <option value="I:C:100">100 Breast</option>
-    <option value="I:D:100">100 Fly</option>
-    <option value="I:E:200">200 IM</option>
-    <option value="R:A:200">200 Free Relay</option>
-    <option value="R:A:400">400 Free Relay</option>
-    <option value="R:E:200">200 Medley Relay</option>
-  </select>
+    <select id="eventDropdown">
+      <option value="">Select Event</option>
+      <option value="I:A:50">50 Free</option>
+      <option value="I:A:100">100 Free</option>
+      <option value="I:A:200">200 Free</option>
+      <option value="I:A:500">500 Free</option>
+      <option value="I:B:100">100 Back</option>
+      <option value="I:C:100">100 Breast</option>
+      <option value="I:D:100">100 Fly</option>
+      <option value="I:E:200">200 IM</option>
+      <option value="R:A:200">200 Free Relay</option>
+      <option value="R:A:400">400 Free Relay</option>
+      <option value="R:E:200">200 Medley Relay</option>
+    </select>
 
-  <select id="courseDropdown">
-    <option value="">Select Course</option>
-    <option value="Y">SC Yards (convert)</option>
-    <option value="YO">SC Yards Only</option>
-    <option value="S">SC Meters (convert)</option>
-    <option value="SO">SC Meters Only</option>
-    <option value="L">Long Course Meters (convert)</option>
-    <option value="LO">Long Course Meters Only</option>
-  </select>
+    <select id="courseDropdown">
+      <option value="">Select Course</option>
+      <option value="Y">SC Yards (convert)</option>
+      <option value="YO">SC Yards Only</option>
+      <option value="S">SC Meters (convert)</option>
+      <option value="SO">SC Meters Only</option>
+      <option value="L">Long Course Meters (convert)</option>
+      <option value="LO">Long Course Meters Only</option>
+    </select>
 
-   <button id="showResultsBtn">Show Results</button>
-</div>
+    <button id="showResultsBtn">Show Results</button>
+  </div>
 
-  <table id="resultsTable">
-    <thead>
-      <tr><th>Rank</th><th>Name</th><th>School</th><th>Time</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div class="results-wrapper">
+    <table id="resultsTable">
+      <thead>
+        <tr><th>Rank</th><th>Name</th><th>School</th><th>Time</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
   
-<!-- Spacer -->
-<div style="height: 2rem;"></div>
-  
-<table id="schoolKey">
-  <thead>
-    <tr>
-      <th>Code</th>
-      <th>School Name</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+  <div class="school-key-wrapper">
+    <h3 class="legend-title">School Code Reference</h3>
+    <table id="schoolKey">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>School Name</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
   <script src="/script.js" defer></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

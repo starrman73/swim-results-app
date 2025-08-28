@@ -47,7 +47,7 @@ function renderTable(data) {
     return;
   }
 
-  // Determine if this is a relay dataset
+  // Relay mode if every swimmer.name is empty/falsy
   const isRelay = data.every(swimmer => !swimmer.name);
 
   tbody.innerHTML = '';
@@ -62,12 +62,13 @@ function renderTable(data) {
     tbody.appendChild(tr);
   });
 
-  // Optionally hide the table header cell for Name as well
-  const nameHeader = document.querySelector('#resultsTable thead th.name-col');
+  // Hide/show the Name header cell if present
+  const nameHeader = document.querySelector('#resultsTable thead th:nth-child(2)');
   if (nameHeader) {
     nameHeader.style.display = isRelay ? 'none' : '';
   }
 }
+
 
 
 function renderSchoolKey(schoolData) {
@@ -167,6 +168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   console.log('Click listener attached');
 });
+
 
 
 

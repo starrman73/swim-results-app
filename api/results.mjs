@@ -21,7 +21,11 @@ export default async (req, res) => {
     };
 
     const csvPath = path.join(process.cwd(), 'public', 'division2.csv');
-    const csvLines = fs.readFileSync(csvPath, 'utf8').replace(/^\uFEFF/, '').trim().split('\n').slice(1);
+    const csvLines = fs.readFileSync(csvPath, 'utf8')
+      .replace(/^\uFEFF/, '')
+      .trim()
+      .split('\n')
+      .slice(1);
 
     const allowedCodes = new Set();
     const schoolNameToCode = new Map();
@@ -38,8 +42,6 @@ export default async (req, res) => {
       }
     }
 
-    console.log('DEBUG allowedCodes sample:', [...allowedCodes].slice(0, 15));
-
     const targetUrl = `https://toptimesbuild.sportstiming.com/reports/report_rankings.php?org=${org}&gender=${encodeURIComponent(
       gender
     )}&event=${encodeURIComponent(event)}&lc=${encodeURIComponent(course)}&100course=0`;
@@ -48,12 +50,9 @@ export default async (req, res) => {
     const html = await resp.text();
     const $ = cheerio.load(html);
 
-    console.log('Target URL:', targetUrl);
-    console.log('Status:', resp.status);
-    console.log('HTML length:', html.length);
-
     let headerCells = [];
     let table = null;
+
     $('table').each((ti, t) => {
       const theadThs = $(t).find('thead tr:last-child th');
       const ths = theadThs.length ? theadThs : $(t).find('tr').first().find('th');
@@ -69,7 +68,8 @@ export default async (req, res) => {
       return res.status(200).json([]);
     }
 
-    const normalizeHeader = h => (h || '').toLowerCase().trim().replace(/\s+/g, '').replace(/\(.*?\)/g, '');
+    const normalizeHeader = h =>
+      (h || '').toLowerCase().trim().replace(/\s+/g, '').replace(/\(.*?\)/g, '');
 
     function buildHeaderIndex(cells) {
       const cleaned = cells.map(normalizeHeader);
@@ -84,13 +84,8 @@ export default async (req, res) => {
       return { idx, cleaned };
     }
 
-    const { idx: headerIndex, cleaned: cleanedHeaders } = buildHeaderIndex(headerCells);
+    const { idx: headerIndex } = buildHeaderIndex(headerCells);
 
-    console.log('DEBUG headerCells:', headerCells);
-    console.log('DEBUG cleanedHeaders:', cleanedHeaders);
-    console.log('DEBUG headerIndex:', headerIndex);
-
-    // FIX 1: strip parentheses before regex test
     const timeLike = s => {
       const raw = (s || '').trim().toUpperCase();
       if (!raw) return false;
@@ -159,25 +154,28 @@ export default async (req, res) => {
       if (!cellsText.some(v => v && v.length)) return;
 
       const time = findTimeInRow(cellsText);
-      if (!time) {
-        console.log('ROW SKIPPED (no time):', cellsText);
-        return;
+      if (!time) return;
+
+      let name = null;
+      let schoolCode = null;
+
+      if (headerIndex.name != null) {
+        // Individual swimmer
+        const rawNameCell = cellsText[headerIndex.name] || '';
+        name = rawNameCell.trim();
+        schoolCode = findSchoolCodeInRow(cellsText) || null;
+      } else if (headerIndex.team != null) {
+        // Relay
+        const rawTeamCell = cellsText[headerIndex.team] || '';
+        schoolCode = normalizeCode(rawTeamCell);
       }
 
-      const rawNameCell = headerIndex.name != null ? (cellsText[headerIndex.name] || '').trim() : '';
-      const name = rawNameCell || null;
+      if (!schoolCode || !allowedCodes.has(schoolCode)) return;
 
-      const schoolCode = findSchoolCodeInRow(cellsText) || null;
-
-      // FIX 2: filter out codes not in CSV
-      if (!schoolCode || !allowedCodes.has(schoolCode)) {
-        console.log('ROW SKIPPED (schoolCode not allowed):', { name, schoolCode });
-        return;
-      }
-
-      results.push({ name, schoolCode, time });
+      results.push({ name: name || null, schoolCode, time });
     });
 
+    // Deduplicate
     results = Array.from(
       new Map(
         results.map(r => [

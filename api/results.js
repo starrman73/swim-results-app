@@ -59,18 +59,19 @@ export default async (req, res) => {
 
     let results = [];
 
-    $('table tr').each((i, row) => {
-      const cells = $(row).find('td');
-      if (cells.length >= 3) {
-        const name = $(cells[0]).text().trim();
-        const schoolCode = $(cells[1]).text().trim();
-        const time = $(cells[2]).text().trim();
+$('table tr').each((i, row) => {
+  const cells = $(row).find('td');
+  if (cells.length >= 4) {
+    const name = $(cells[1]).text().trim();
+    const schoolCode = $(cells[2]).text().trim().toUpperCase();
+    const time = $(cells[3]).text().trim();
 
-        if (name && time && allowedCodes.has(schoolCode)) {
-          results.push({ name, schoolCode, time });
-        }
-      }
-    });
+    if (name && time && allowedCodes.has(schoolCode)) {
+      results.push({ name, schoolCode, time });
+    }
+  }
+});
+
 
     // Deduplicate by name + time
     results = Array.from(

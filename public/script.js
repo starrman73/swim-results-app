@@ -41,16 +41,12 @@ async function loadSchoolCodes(csvPath) {
 
 function renderTable(data) {
   const table = document.querySelector('#resultsTable');
-  const thead = table?.querySelector('thead');
-  const tbody = table?.querySelector('tbody');
-  if (!thead || !tbody) {
-    console.warn('resultsTable parts not found.');
-    return;
-  }
+  const thead = table.querySelector('thead');
+  const tbody = table.querySelector('tbody');
 
-  const isRelay = data.every(swimmer => !swimmer.name);
+  const isRelay = data.every(s => !s.name);
 
-  // Build headers fresh
+  // 🔹 Kill the old header and build fresh
   thead.innerHTML = '';
   const headRow = document.createElement('tr');
   headRow.innerHTML = `
@@ -61,19 +57,20 @@ function renderTable(data) {
   `;
   thead.appendChild(headRow);
 
-  // Build body fresh
+  // 🔹 Build table body
   tbody.innerHTML = '';
-  data.forEach((swimmer, idx) => {
+  data.forEach((s, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${idx + 1}</td>
-      ${!isRelay ? `<td>${swimmer.name || ''}</td>` : ''}
-      <td>${swimmer.schoolCode || ''}</td>
-      <td>${swimmer.time || ''}</td>
+      ${!isRelay ? `<td>${s.name || ''}</td>` : ''}
+      <td>${s.schoolCode || ''}</td>
+      <td>${s.time || ''}</td>
     `;
     tbody.appendChild(tr);
   });
 }
+
 
 function renderSchoolKey(schoolData) {
   const tbody = document.querySelector('#schoolKey tbody');
@@ -172,6 +169,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   console.log('Click listener attached');
 });
+
 
 
 

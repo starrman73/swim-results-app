@@ -24,7 +24,7 @@ export default async (req, res) => {
       return up === 'NULL' || up === 'N/A' || up === 'NA' || up === '-' || up === '—';
     };
 
-    // Load CSV: first column = code, remaining columns = school name (tolerate commas)
+    // Load CSV
     const csvPath = path.join(process.cwd(), 'public', 'division2.csv');
     const csvLines = fs
       .readFileSync(csvPath, 'utf8')
@@ -67,8 +67,7 @@ export default async (req, res) => {
     // Pick header row robustly
     let headerCells = [];
     let table = null;
-    const candidateTables = $('table');
-    candidateTables.each((ti, t) => {
+    $('table').each((ti, t) => {
       const theadThs = $(t).find('thead tr:last-child th');
       const ths = theadThs.length ? theadThs : $(t).find('tr').first().find('th');
       if (ths.length >= 2) {
@@ -91,7 +90,7 @@ export default async (req, res) => {
       const idx = {};
       cleaned.forEach((h, i) => {
         if (idx.rank == null && (h === '#' || h === 'rank')) idx.rank = i;
-        if (idx.name == null && (h === 'name' || h === 'swimmer')) idx.name = i;
+        if (idx.name == null && (h === 'name' || h === 'swimmer' || h === 'athlete')) idx.name = i; // Added 'athlete'
         if (idx.school == null && (h === 'school' || h === 'highschool' || h === 'hs')) idx.school = i;
         if (idx.team == null && h === 'team') idx.team = i;
         if (idx.time == null && (h === 'time' || h.startsWith('time'))) idx.time = i;
@@ -101,7 +100,7 @@ export default async (req, res) => {
 
     const { idx: headerIndex, cleaned: cleanedHeaders } = buildHeaderIndex(headerCells);
 
-    // Relay detection based on event param (authoritative), not headers
+    // Relay detection based on event param
     const eventStr = decodeURIComponent(event || '');
     const isRelayByEvent = /^R:/i.test(eventStr);
 
@@ -110,15 +109,11 @@ export default async (req, res) => {
     console.log('DEBUG headerIndex:', headerIndex);
     console.log('Relay detection (by event):', isRelayByEvent);
 
-    if (isRelayByEvent && !('team' in headerIndex)) {
-      console.warn('Relay event indicated, but no Team column found. Falling back to individual parsing.');
-    }
-
     const timeLike = s => {
       const raw = (s || '').trim().toUpperCase();
       if (!raw) return false;
       if (/^(?:NT|DQ|NS|DNF)$/.test(raw)) return true;
-      const t = raw.replace(/\(.*?\)/g, '').replace(/[A-Z]$/, '');
+      const t = raw.replace(/\(.*?\)/g, '').replace(/[A-Z]$/, ''); // strip parentheses + trailing letter
       return /^(\d{1,2}:)?\d{1,2}\.\d{2}$/.test(t);
     };
 
@@ -128,7 +123,6 @@ export default async (req, res) => {
       return raw.replace(/\(.*?\)/g, '').replace(/[A-Z]$/, '').trim();
     };
 
-    // Kept for school detection
     const isCodeToken = s => {
       if (isPlaceholder(s)) return false;
       const v = (s || '').trim();
@@ -152,7 +146,6 @@ export default async (req, res) => {
       return '';
     };
 
-    // Individuals: derive school code from School col (by code or mapping), else Team
     const findSchoolCodeInRow = cellsText => {
       if (headerIndex.school != null) {
         const rawSchool = cellsText[headerIndex.school];
@@ -183,7 +176,6 @@ export default async (req, res) => {
 
       if (!cellsText.some(v => v && v.length)) return;
 
-      // Only treat as relay if event indicates relay AND Team column exists
       if (isRelayByEvent && ('team' in headerIndex)) {
         const team =
           (headerIndex.team != null ? cellsText[headerIndex.team] : cellsText[1]) || '';
@@ -194,7 +186,7 @@ export default async (req, res) => {
 
         if (team && timeCell) {
           results.push({
-            name: team.trim(), // relay: show team in name
+            name: team.trim(),
             schoolCode: null,
             time: normalizeTime(timeCell)
           });
@@ -204,18 +196,15 @@ export default async (req, res) => {
         return;
       }
 
-      // Individual rows
       const time = findTimeInRow(cellsText);
       if (!time) {
         console.log('ROW SKIPPED (no time):', cellsText);
         return;
       }
 
-      // Take Name cell literally (do not null it based on heuristics)
       const rawNameCell = headerIndex.name != null ? (cellsText[headerIndex.name] || '').trim() : '';
       const name = rawNameCell && !isPlaceholder(rawNameCell) ? rawNameCell : null;
 
-      // Derive school code from School/Team only (never from Name)
       let schoolCode = findSchoolCodeInRow(cellsText) || null;
 
       results.push({
@@ -225,7 +214,6 @@ export default async (req, res) => {
       });
     });
 
-    // Deduplicate by stable key
     results = Array.from(
       new Map(
         results.map(r => [

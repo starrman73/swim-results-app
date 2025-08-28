@@ -13,13 +13,15 @@ export default async (req, res) => {
 
     // Load allowed school codes from CSV
     const csvPath = path.join(process.cwd(), 'public', 'division2.csv');
-    const allowedCodes = new Set(
-      fs.readFileSync(csvPath, 'utf8')
-        .trim()
-        .split('\n')
-        .slice(1)
-        .map(line => line.split(',')[0].trim())
-    );
+const allowedCodes = new Set(
+  fs.readFileSync(csvPath, 'utf8')
+    .trim()
+    .split('\n')
+    .slice(1)
+    .map(line => line.split(',')[1]?.trim().toUpperCase()) // grab Code, normalize
+    .filter(Boolean)
+);
+
 
     // Build native query URL
     const targetUrl = `https://toptimesbuild.sportstiming.com/reports/report_rankings.php?org=${org}&gender=${encodeURIComponent(gender)}&event=${encodeURIComponent(event)}&lc=${encodeURIComponent(course)}&100course=0`;

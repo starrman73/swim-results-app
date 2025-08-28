@@ -6,7 +6,7 @@ async function loadResults(apiUrl) {
   return await res.json();
 }
 
-// NEW: load and parse school codes CSV
+// Load and parse school codes CSV
 async function loadSchoolCodes(csvPath) {
   const res = await fetch(csvPath);
   if (!res.ok) {
@@ -35,7 +35,6 @@ function renderTable(data) {
   });
 }
 
-// NEW: render school key table
 function renderSchoolKey(schoolData) {
   const tbody = document.querySelector('#schoolKey tbody');
   if (!tbody) {
@@ -50,13 +49,22 @@ function renderSchoolKey(schoolData) {
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   console.log('DOM fully loaded');
 
   const genderSelect = document.getElementById('genderDropdown');
   const eventSelect = document.getElementById('eventDropdown');
   const courseSelect = document.getElementById('courseDropdown');
   const showBtn = document.getElementById('showResultsBtn');
+
+  // Preload the school code key on page load
+  try {
+    const schoolCodes = await loadSchoolCodes('division2.csv');
+    console.log('Preloaded school codes:', schoolCodes);
+    renderSchoolKey(schoolCodes);
+  } catch (err) {
+    console.error('Error preloading school codes:', err);
+  }
 
   if (!showBtn) {
     console.error('Show Results button not found.');
@@ -81,16 +89,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const apiUrl = `/api/results?org=1&gender=${genderVal}&event=${eventVal}&course=${courseVal}`;
       console.log('Fetching from:', apiUrl);
 
-      // Results
       const results = await loadResults(apiUrl);
       const unique = Array.from(
         new Map(results.map(item => [`${item.name}-${item.time}`, item])).values()
       );
       renderTable(unique);
-
-      // School key from CSV (update path if needed)
-      const schoolCodes = await loadSchoolCodes('division2.csv');
-      renderSchoolKey(schoolCodes);
 
     } catch (err) {
       console.error('Error on Show Results click:', err);
@@ -99,4 +102,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
   console.log('Click listener attached');
 });
-

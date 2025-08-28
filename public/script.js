@@ -78,12 +78,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       const eventVal = eventSelect.value;
       const courseVal = courseSelect.value;
 
-     if (!genderVal || !eventVal || !courseVal) {
+const warnMissing = () => {
   Swal.fire({
     icon: 'warning',
     title: 'Missing Information',
     text: 'Please select gender, event, and course.',
+    width: 'min(90vw, 420px)',   // scales on small screens, capped on large
+    customClass: {
+      popup: 'swal-compact',
+      title: 'swal-compact-title',
+      confirmButton: 'swal-compact-btn',
+    },
   });
+};
+
+if (!genderVal || !eventVal || !courseVal) {
+  warnMissing();
   return;
 }
 
@@ -106,6 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   console.log('Click listener attached');
 });
+
 
 
 

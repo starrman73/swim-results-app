@@ -44,34 +44,29 @@ function renderTable(data) {
   const thead = table.querySelector('thead');
   const tbody = table.querySelector('tbody');
 
+  // Detect relay mode
   const isRelay = data.every(s => !s.name);
 
-  // Build thead from scratch
-  thead.innerHTML = '';
-  const headRow = document.createElement('tr');
-  headRow.innerHTML = `
-    <th>Rank</th>
-    ${!isRelay ? '<th>Name</th>' : ''}
-    <th>School</th>
-    <th>Time</th>
+  // Build header
+  thead.innerHTML = `
+    <tr>
+      <th>Rank</th>
+      ${!isRelay ? '<th>Name</th>' : ''}
+      <th>School</th>
+      <th>Time</th>
+    </tr>
   `;
-  thead.appendChild(headRow);
 
-  // Build tbody from scratch
-  tbody.innerHTML = '';
-  data.forEach((s, idx) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
+  // Build body
+  tbody.innerHTML = data.map((s, idx) => `
+    <tr>
       <td>${idx + 1}</td>
       ${!isRelay ? `<td>${s.name || ''}</td>` : ''}
       <td>${s.schoolCode || ''}</td>
       <td>${s.time || ''}</td>
-    `;
-    tbody.appendChild(tr);
-  });
+    </tr>
+  `).join('');
 }
-
-
 
 function renderSchoolKey(schoolData) {
   const tbody = document.querySelector('#schoolKey tbody');
@@ -170,6 +165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   console.log('Click listener attached');
 });
+
 
 
 

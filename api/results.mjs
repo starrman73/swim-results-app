@@ -180,7 +180,8 @@ export default async (req, res) => {
     results = Array.from(
       new Map(
         results.map(r => [
-          `${(r.name && r.name.trim()) || r.schoolCode || 'UNKNOWN'}-${r.time}`,
+          //`${(r.name && r.name.trim()) || r.schoolCode || 'UNKNOWN'}-${r.time}`,
+          `${(r.name !== null && r.name !== undefined ? r.name.trim() : '') || r.schoolCode || 'UNKNOWN'}-${r.time}`,
           r
         ])
       ).values()

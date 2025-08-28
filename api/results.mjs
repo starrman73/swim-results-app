@@ -24,7 +24,7 @@ export default async (req, res) => {
       return up === 'NULL' || up === 'N/A' || up === 'NA' || up === '-' || up === '—';
     };
 
-    // Load CSV: first col = code, remaining cols = school name (tolerate commas)
+    // Load CSV: first column = code, remaining columns = school name (tolerate commas)
     const csvPath = path.join(process.cwd(), 'public', 'division2.csv');
     const csvLines = fs
       .readFileSync(csvPath, 'utf8')
@@ -64,13 +64,14 @@ export default async (req, res) => {
     console.log('Status:', resp.status);
     console.log('HTML length:', html.length);
 
-    // Find first table with header cells
-    const tables = $('table');
-    let table = null;
+    // Pick header row robustly
     let headerCells = [];
-    tables.each((ti, t) => {
-      const ths = $(t).find('tr').first().find('th');
-      if (ths.length) {
+    let table = null;
+    const candidateTables = $('table');
+    candidateTables.each((ti, t) => {
+      const theadThs = $(t).find('thead tr:last-child th');
+      const ths = theadThs.length ? theadThs : $(t).find('tr').first().find('th');
+      if (ths.length >= 2) {
         table = t;
         headerCells = ths.map((i, el) => $(el).text().trim()).get();
         return false;
@@ -82,7 +83,6 @@ export default async (req, res) => {
       return res.status(200).json([]);
     }
 
-    // Header normalization and indexing
     const normalizeHeader = h =>
       (h || '').toLowerCase().trim().replace(/\s+/g, '').replace(/\(.*?\)/g, '');
 
@@ -100,6 +100,7 @@ export default async (req, res) => {
     }
 
     const { idx: headerIndex, cleaned: cleanedHeaders } = buildHeaderIndex(headerCells);
+
     const detectRelay = idx => idx.team != null && idx.name == null;
     const isRelay = detectRelay(headerIndex);
 
@@ -108,7 +109,6 @@ export default async (req, res) => {
     console.log('DEBUG headerIndex:', headerIndex);
     console.log('Relay table:', isRelay);
 
-    // Helpers
     const timeLike = s => {
       const raw = (s || '').trim().toUpperCase();
       if (!raw) return false;
@@ -123,19 +123,20 @@ export default async (req, res) => {
       return raw.replace(/\(.*?\)/g, '').replace(/[A-Z]$/, '').trim();
     };
 
-    const looksLikeCode = s => {
-      if (isPlaceholder(s)) return '';
-      const c = normalizeCode(s);
-      return /^[A-Z0-9]{2,6}$/.test(c) ? c : '';
+    // A tight code classifier for tokens like MDC, ESD, NFD
+    const isCodeToken = s => {
+      if (isPlaceholder(s)) return false;
+      const v = (s || '').trim();
+      return /^[A-Z0-9]{2,6}$/.test(v) && v === v.toUpperCase();
     };
 
     const looksLikeHumanName = s => {
       const v = (s || '').trim();
       if (!v) return false;
-      if (/[a-z]/.test(v)) return true;        // lowercase letters
-      if (/\s/.test(v)) return true;           // contains space
-      if (/[,'-]\s?/.test(v)) return true;     // common name punctuation
-      if (/^[A-Z0-9]{2,6}$/.test(v)) return false; // short all-caps likely code
+      if (isCodeToken(v)) return false;
+      if (/[a-z]/.test(v)) return true;
+      if (/\s/.test(v)) return true;
+      if (/[,'-]\s?/.test(v)) return true;
       return v.length > 8;
     };
 
@@ -156,51 +157,21 @@ export default async (req, res) => {
       return '';
     };
 
-    // Individuals: derive school code from School col (by code or mapping), else Team, else other cells (excluding Name)
+    // Individuals: derive school code from School col (by code or mapping), else Team
     const findSchoolCodeInRow = cellsText => {
-      // 1) School column
       if (headerIndex.school != null) {
         const rawSchool = cellsText[headerIndex.school];
         if (!isPlaceholder(rawSchool)) {
-          const asCode = looksLikeCode(rawSchool);
-          if (asCode) return asCode;
+          if (isCodeToken(rawSchool)) return normalizeCode(rawSchool);
           const mapped = mapSchoolNameToCode(rawSchool);
           if (mapped) return mapped;
         }
       }
-      // 2) Team column fallback
       if (headerIndex.team != null) {
         const rawTeam = cellsText[headerIndex.team];
-        const asCode = looksLikeCode(rawTeam);
-        if (asCode) return asCode;
-      }
-      // 3) Any other cell (exclude Name index to avoid grabbing the privacy code here)
-      for (let i = 0; i < cellsText.length; i++) {
-        if (headerIndex.name != null && i === headerIndex.name) continue;
-        const c = looksLikeCode(cellsText[i]);
-        if (c) return c;
+        if (isCodeToken(rawTeam)) return normalizeCode(rawTeam);
       }
       return '';
-    };
-
-    const findNameInRow = cellsText => {
-      if (headerIndex.name != null) {
-        const raw = (cellsText[headerIndex.name] || '').trim();
-        if (looksLikeCode(raw) && !looksLikeHumanName(raw)) return ''; // don't use codes as names
-        if (looksLikeHumanName(raw)) return raw;
-      }
-      // Heuristic fallback: pick longest non-time, non-code, non-rank cell
-      const rankedIdx = headerIndex.rank ?? -1;
-      let best = '';
-      cellsText.forEach((v, idx) => {
-        const val = (v || '').trim();
-        if (!val) return;
-        if (idx === rankedIdx) return;
-        if (timeLike(val)) return;
-        if (looksLikeCode(val)) return;
-        if (val.length > best.length) best = val;
-      });
-      return best;
     };
 
     let results = [];
@@ -227,7 +198,7 @@ export default async (req, res) => {
 
         if (team && timeCell) {
           results.push({
-            name: team.trim(),      // UI expects 'name'
+            name: team.trim(), // UI expects 'name'
             schoolCode: null,
             time: normalizeTime(timeCell)
           });
@@ -237,33 +208,37 @@ export default async (req, res) => {
         return;
       }
 
-      // Individuals
+      // Individual rows
       const time = findTimeInRow(cellsText);
+      if (!time) {
+        console.log('ROW SKIPPED (no time):', cellsText);
+        return;
+      }
+
+      // Read raw Name/School cells (if present)
+      const rawNameCell = headerIndex.name != null ? (cellsText[headerIndex.name] || '').trim() : '';
+      const rawSchoolCell = headerIndex.school != null ? (cellsText[headerIndex.school] || '').trim() : '';
+
+      // Determine schoolCode
       let schoolCode = findSchoolCodeInRow(cellsText) || null;
-      let name = findNameInRow(cellsText) || null;
 
-      // Critical fix: if School is empty and Name cell is a code, treat that code as schoolCode and blank the person name
-      if (!schoolCode && headerIndex.name != null) {
-        const rawNameCell = (cellsText[headerIndex.name] || '').trim();
-        const codeFromName = looksLikeCode(rawNameCell);
-        if (codeFromName) {
-          schoolCode = codeFromName;
-          name = null; // do not display the code as a name
-        }
+      // If School was empty and Name looks like a code (e.g., MDC), use that code and force name to null
+      const nameCellIsCode = isCodeToken(rawNameCell);
+      if (!schoolCode && nameCellIsCode) {
+        schoolCode = normalizeCode(rawNameCell);
       }
 
-      if (time) {
-        results.push({
-          name,
-          schoolCode,
-          time
-        });
-      } else {
-        console.log('ROW SKIPPED INDIV DEBUG:', { cellsText, name, schoolCode, time });
-      }
+      // Determine swimmer name: never return code-looking tokens
+      let name = looksLikeHumanName(rawNameCell) ? rawNameCell : null;
+
+      results.push({
+        name,
+        schoolCode,
+        time
+      });
     });
 
-    // Deduplicate: prefer schoolCode when name is missing
+    // Deduplicate by stable key: prefer schoolCode when name is null
     results = Array.from(
       new Map(
         results.map(r => [

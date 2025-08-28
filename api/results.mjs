@@ -181,7 +181,7 @@ export default async (req, res) => {
       new Map(
         results.map(r => [
           //`${(r.name && r.name.trim()) || r.schoolCode || 'UNKNOWN'}-${r.time}`,
-          `${(r.name !== null && r.name !== undefined ? r.name.trim() : '') || r.schoolCode || 'UNKNOWN'}-${r.time}`,
+          `${(r.name !== null && r.name !== undefined ? r.name.trim() : '---') || r.schoolCode || 'UNKNOWN'}-${r.time}`,
           r
         ])
       ).values()

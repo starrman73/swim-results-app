@@ -25,7 +25,7 @@ export default async (req, res) => {
         .trim()
         .split('\n')
         .slice(1)
-        .map(line => normalizeCode(line.split(',')[1]))
+        .map(line => normalizeCode(line.split(',')[0]))
         .filter(Boolean)
     );
 

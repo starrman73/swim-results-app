@@ -103,8 +103,14 @@ tr:hover {
 }
 
   .link-above-table {
-  margin-left: auto;  /* pushes to far right in flex row */
   margin-bottom: 6px;
+}
+
+  .link-above-table {
+  text-align: right;
+}
+.link-above-table a {
+  display: inline-block; /* optional, keeps it from full-width stretching */
 }
 
 .link-above-table a {
@@ -117,6 +123,7 @@ tr:hover {
 }
 
 }
+
 
 
 

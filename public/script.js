@@ -9,12 +9,12 @@ async function loadResults(apiUrl) {
 function renderTable(data) {
   const tbody = document.querySelector('#resultsTable tbody');
   tbody.innerHTML = '';
-  data.forEach(swimmer => {
+  data.forEach((swimmer, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
+      <td>${idx + 1}</td> <!-- rank -->
       <td>${swimmer.name}</td>
       <td>${swimmer.schoolCode}</td>
-      <td>${swimmer.event}</td>
       <td>${swimmer.time}</td>
     `;
     tbody.appendChild(tr);
@@ -69,3 +69,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
   console.log('Click listener attached');
 });
+

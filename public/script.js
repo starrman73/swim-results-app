@@ -1,4 +1,4 @@
-Script.js working copy
+
 
 // ----- Spinner helpers -----
 function showSpinner() {
@@ -193,6 +193,7 @@ renderTable(unique);
 
   console.log('Click listener attached');
 });
+
 
 
 

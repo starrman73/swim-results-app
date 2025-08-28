@@ -13,12 +13,19 @@ export default async (req, res) => {
 
     // Load allowed school codes from CSV
     const csvPath = path.join(process.cwd(), 'public', 'division2.csv');
+
+    const normalizeCode = str =>
+  (str || '')
+    .toUpperCase()
+    .replace(/[^\w]/g, ''); // drop everything that’s not A–Z/0–9
+
 const allowedCodes = new Set(
   fs.readFileSync(csvPath, 'utf8')
+    .replace(/^\uFEFF/, '') // strip BOM if present
     .trim()
     .split('\n')
     .slice(1)
-    .map(line => line.split(',')[1]?.trim().toUpperCase()) // grab Code, normalize
+    .map(line => normalizeCode(line.split(',')[1]))
     .filter(Boolean)
 );
 

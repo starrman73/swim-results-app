@@ -157,10 +157,13 @@ export default async (req, res) => {
     const headerHasName = headerCells.includes('name');
 
 const cleanedHeaders = headerCells.map(h =>
-  h.toLowerCase().replace(/\s+/g, '').replace(/\(.*?\)/g, '')
+  h.toLowerCase().trim().replace(/\s+/g, '').replace(/\(.*?\)/g, '')
 );
 
-const isRelay = cleanedHeaders.includes('team') && !cleanedHeaders.includes('name');
+const isRelay =
+  cleanedHeaders.includes('team') &&
+  !cleanedHeaders.includes('name') &&
+  cleanedHeaders.some(h => h.startsWith('time'));
 console.log('Relay detection (cleaned):', isRelay);
     
 

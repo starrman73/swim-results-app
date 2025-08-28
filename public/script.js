@@ -45,6 +45,11 @@ function renderTable(data) {
   const tbody = table.querySelector('tbody');
 
   // Detect relay mode
+  console.log('type of data:', typeof data);
+console.log('isArray?', Array.isArray(data));
+console.log('data length:', data.length);
+console.log('data contents:', data);
+
   //const isRelay = data.every(s => !s.name);
   //const isRelay = data.every(s => !s.name || /^[A-Z]?\s*Relay$/i.test(s.name));
   const isRelay = data.every(s => {
@@ -177,6 +182,7 @@ renderTable(unique);
 
   console.log('Click listener attached');
 });
+
 
 
 

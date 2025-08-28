@@ -46,11 +46,16 @@ tr:hover {
   text-align: left;
 }
 
+#school-key th {
+  text-align: left;
+}
+
 .school-key {
   margin-top: 2rem;     /* pushes it down */
   font-size: 0.9em;     /* slightly smaller text to show it’s secondary */
   color: #444;          /* softens the visual weight */
 }
+
 
 
 

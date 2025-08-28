@@ -108,7 +108,7 @@ tr:hover {
 }
 
 .link-above-table a {
-  font-weight: bold;
+  font-weight: normal;
   text-decoration: none;
 }
 
@@ -117,6 +117,7 @@ tr:hover {
 }
 
 }
+
 
 
 

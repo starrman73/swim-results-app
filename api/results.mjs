@@ -176,16 +176,31 @@ export default async (req, res) => {
       results.push({ name: name, schoolCode, time });
     });
 
-    // Deduplicate
-    results = Array.from(
-      new Map(
-        results.map(r => [
-          //`${(r.name && r.name.trim()) || r.schoolCode || 'UNKNOWN'}-${r.time}`,
-          `${(r.name !== null && r.name !== undefined ? r.name.trim() : '---') || r.schoolCode || 'UNKNOWN'}-${r.time}`,
-          r
-        ])
-      ).values()
-    );
+    // Helper to convert a time string to seconds for comparison
+    const timeToSeconds = t => {
+      if (/^(?:NT|DQ|NS|DNF)$/i.test(t)) return Infinity;
+      const parts = t.split(':').map(parseFloat);
+      return parts.length === 1
+        ? parts[0]
+        : parts[0] * 60 + parts[1];
+    };
+
+    // Separate individuals and relays
+    const individuals = results.filter(r => headerIndex.name != null && r.name && r.name.trim());
+    const relays = results.filter(r => !(headerIndex.name != null && r.name && r.name.trim()));
+
+    // For individuals: keep only fastest time per swimmer
+    const fastestMap = new Map();
+    for (const r of individuals) {
+      const key = r.name.trim().toUpperCase();
+      const currentBest = fastestMap.get(key);
+      if (!currentBest || timeToSeconds(r.time) < timeToSeconds(currentBest.time)) {
+        fastestMap.set(key, r);
+      }
+    }
+
+    // Merge back: fastest individuals + all relays
+    results = [...fastestMap.values(), ...relays];
 
     res.status(200).json(results);
   } catch (err) {

@@ -42,7 +42,7 @@ export default async (req, res) => {
       }
     }
 
-    const targetUrl = `https://toptimesbuild.sportstiming.com/reports/report_rankings.php?org=${org}&gender=${encodeURIComponent(
+    const targetUrl = `https://meetdirector.online/reports/report_rankings_enhanced.php?div_id=2&org_id=1&gender=${encodeURIComponent(
       gender
     )}&event=${encodeURIComponent(event)}&lc=${encodeURIComponent(course)}&100course=0`;
 

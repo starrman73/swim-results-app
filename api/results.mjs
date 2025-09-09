@@ -4,7 +4,7 @@ import path from 'path';
 
 export default async (req, res) => {
   console.log('[results-entry] API route invoked');
-  console.log('[results-version] v2.1-htmlfix');
+  console.log('[results-version] v2.2-fetchlog');
 
   try {
     const { gender, event } = req.query;
@@ -50,11 +50,20 @@ export default async (req, res) => {
       gender
     )}&event=${encodeURIComponent(event)}&pp=50&page=1`;
 
-    const resp = await fetch(targetUrl);
-    let html = await resp.text();
+    // Fetch with browser-like headers
+    const resp = await fetch(targetUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9'
+      }
+    });
 
-    // Log snippet of raw HTML for debugging
-    console.log('[html-snippet-raw]', html.slice(0, 500));
+    console.log('[fetch-status]', resp.status);
+    let html = await resp.text();
+    console.log('[html-length]', html.length);
+    console.log('[html-snippet-raw]', html.slice(0, 1000));
 
     // Fix malformed tags before parsing
     html = html

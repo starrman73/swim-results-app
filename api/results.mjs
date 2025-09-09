@@ -42,9 +42,10 @@ export default async (req, res) => {
       }
     }
 
-    const targetUrl = `https://meetdirector.online/reports/report_rankings_enhanced.php?course=&div_id=2&org_id=1&gender=${encodeURIComponent(
-      gender
-    )}&event=${encodeURIComponent(event)}`;
+    const targetUrl = `https://meetdirector.online/reports/report_rankings_enhanced.php?org_id=1&class_id=&div_id=2&course=&gender=${encodeURIComponent(
+  gender
+)}&event=${encodeURIComponent(event)}&pp=50&page=1`;
+
 
     const resp = await fetch(targetUrl);
     const html = await resp.text();

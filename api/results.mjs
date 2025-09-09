@@ -3,23 +3,11 @@ import fs from 'fs';
 import path from 'path';
 
 export default async (req, res) => {
-  // Debug toggle: add ?debug=1 to your request
-  const DEBUG =
-    String(req.query.debug || '').toLowerCase() === 'true' ||
-    String(req.query.debug || '') === '1';
-
-  const dlog = (...args) => {
-    if (DEBUG) console.log('[results-debug]', ...args);
-  };
-
   try {
     const { gender, event } = req.query;
     const org = 1;
 
-    dlog('Incoming query params:', { gender, event, org });
-
     if (!gender || !event) {
-      dlog('Missing required query params.');
       return res.status(400).json({ error: 'Missing required query params' });
     }
 
@@ -32,18 +20,13 @@ export default async (req, res) => {
       return ['NULL', 'N/A', 'NA', '-', '—'].includes(up);
     };
 
-    // Load CSV (allowed codes + name map)
+    // Load allowed codes
     const csvPath = path.join(process.cwd(), 'public', 'division2.csv');
-    let csvRaw = '';
-    try {
-      csvRaw = fs.readFileSync(csvPath, 'utf8');
-    } catch (e) {
-      dlog('Failed to read CSV at path:', csvPath, e?.message);
-      return res.status(500).json({ error: 'CSV not found or unreadable' });
-    }
-
-    const csvLines = csvRaw.replace(/^\uFEFF/, '').trim().split('\n').slice(1);
-    dlog('CSV lines (without header):', csvLines.length);
+    const csvLines = fs.readFileSync(csvPath, 'utf8')
+      .replace(/^\uFEFF/, '')
+      .trim()
+      .split('\n')
+      .slice(1);
 
     const allowedCodes = new Set();
     const schoolNameToCode = new Map();
@@ -60,82 +43,76 @@ export default async (req, res) => {
       }
     }
 
-    dlog('Allowed codes count:', allowedCodes.size);
-    // Show a small sample
-    if (DEBUG) {
-      const sample = Array.from(allowedCodes).slice(0, 10);
-      dlog('Allowed codes sample:', sample);
-    }
-
     const targetUrl = `https://meetdirector.online/reports/report_rankings_enhanced.php?course=&div_id=2&org_id=1&gender=${encodeURIComponent(
       gender
     )}&event=${encodeURIComponent(event)}`;
 
-    dlog('Target URL:', targetUrl);
-
-    let resp;
-    try {
-      resp = await fetch(targetUrl);
-    } catch (e) {
-      dlog('Fetch failed:', e?.message);
-      return res.status(500).json({ error: 'Failed to fetch target URL' });
-    }
-
-    const status = resp.status;
-    dlog('Fetch status:', status);
-
+    const resp = await fetch(targetUrl);
     const html = await resp.text();
-    dlog('HTML length:', html.length);
-    if (DEBUG) {
-      dlog('HTML contains "<table>" count:', (html.match(/<table/gi) || []).length);
-      dlog('HTML contains "Rankings" text:', html.includes('Rankings'));
-      dlog('HTML contains "thead" count:', (html.match(/<thead/gi) || []).length);
-    }
-
     const $ = cheerio.load(html);
 
-    // Locate the table and headers
-    let headerCells = [];
-    let table = null;
-
-    $('table').each((ti, t) => {
-      const theadThs = $(t).find('thead tr:last-child th');
-      const ths = theadThs.length ? theadThs : $(t).find('tr').first().find('th');
-      const thTexts = ths.map((i, el) => $(el).text().trim()).get();
-
-      dlog(`Table[${ti}] th count:`, ths.length, 'headers:', thTexts);
-
-      if (ths.length >= 2) {
-        table = t;
-        headerCells = thTexts;
-        return false; // break
-      }
-    });
-
-    if (!table) {
-      dlog('No table with headers found. Returning empty array.');
-      return res.status(200).json([]);
-    }
-
-    // HTML conformity check to the posted structure
-    // Expecting: Rank, Name, Team, Time (case-insensitive)
-    const expectedHeaders = ['rank', 'name', 'team', 'time'];
+    // Helpers for header handling
     const normalizeHeader = h =>
       (h || '').toLowerCase().trim().replace(/\s+/g, '').replace(/\(.*?\)/g, '');
 
-    const normalizedHeaders = headerCells.map(normalizeHeader);
-    dlog('Detected headerCells:', headerCells);
-    dlog('Normalized headers:', normalizedHeaders);
+    const getHeaderTexts = t => {
+      // Prefer thead th; fallback to first row th; final fallback to first row td
+      const $t = $(t);
+      const ths = $t.find('thead tr:last-child th');
+      if (ths.length) return ths.map((_, el) => $(el).text().trim()).get();
+      const firstTrTh = $t.find('tr').first().find('th');
+      if (firstTrTh.length) return firstTrTh.map((_, el) => $(el).text().trim()).get();
+      const firstTrTd = $t.find('tr').first().find('td');
+      if (firstTrTd.length) return firstTrTd.map((_, el) => $(el).text().trim()).get();
+      return [];
+    };
 
-    const headersOk =
-      expectedHeaders.length === normalizedHeaders.length &&
-      expectedHeaders.every((h, i) => normalizedHeaders[i] === h);
+    // Find the exact Rankings table by header sequence
+    const expected = ['rank', 'name', 'team', 'time'];
+    let table = null;
+    let headerCells = [];
 
-    dlog('Headers match expected [rank,name,team,time]:', headersOk);
-    if (!headersOk) {
-      dlog('Header mismatch. Expected:', expectedHeaders, 'Got:', normalizedHeaders);
+    $('table').each((i, t) => {
+      const headers = getHeaderTexts(t);
+      const norm = headers.map(normalizeHeader);
+      if (
+        norm.length >= 4 &&
+        norm[0] === expected[0] &&
+        norm[1] === expected[1] &&
+        norm[2] === expected[2] &&
+        norm[3] === expected[3]
+      ) {
+        table = t;
+        headerCells = headers;
+        return false; // break
+      }
+      return true;
+    });
+
+    // Fallback: find the table within the Rankings card
+    if (!table) {
+      const cardTable = $('h1')
+        .filter((_, el) => $(el).text().trim().toLowerCase() === 'rankings')
+        .closest('div.card')
+        .find('table')
+        .first()
+        .get(0);
+
+      if (cardTable) {
+        const headers = getHeaderTexts(cardTable);
+        const norm = headers.map(normalizeHeader);
+        if (norm.length) {
+          table = cardTable;
+          headerCells = headers;
+        }
+      }
     }
 
+    if (!table) {
+      return res.status(200).json([]);
+    }
+
+    // Build header index (and bias "team" as school when present)
     function buildHeaderIndex(cells) {
       const cleaned = cells.map(normalizeHeader);
       const idx = {};
@@ -150,32 +127,22 @@ export default async (req, res) => {
     }
 
     const { idx: headerIndex, cleaned: cleanedHeaders } = buildHeaderIndex(headerCells);
-    dlog('Header index:', headerIndex);
-    dlog('Cleaned headers:', cleanedHeaders);
 
-    // Prepare row selection: exclude detail rows
-    let allBodyRows = $(table).find('tbody tr');
-    const totalTrs = allBodyRows.length;
-    dlog('tbody tr count (raw):', totalTrs);
-
-    const rows = allBodyRows.filter((i, el) => {
-      const cls = $(el).attr('class') || '';
-      const keep = !cls.includes('detail');
-      if (!keep && i < 10) dlog(`Filtered out detail row[${i}] class=`, cls);
-      return keep;
-    });
-
-    dlog('tbody tr count (after filtering detail):', rows.length);
-
-    // Stats
-    let stats = {
-      rowsSeen: rows.length,
-      skippedEmpty: 0,
-      skippedNoTime: 0,
-      skippedNoSchool: 0,
-      skippedNotAllowed: 0,
-      parsedOk: 0
-    };
+    // If headers exactly match the expected sequence, enforce indices as a sanity check
+    const cleanedEq = cleanedHeaders.map(normalizeHeader);
+    if (
+      cleanedEq.length >= 4 &&
+      cleanedEq[0] === expected[0] &&
+      cleanedEq[1] === expected[1] &&
+      cleanedEq[2] === expected[2] &&
+      cleanedEq[3] === expected[3]
+    ) {
+      headerIndex.rank = 0;
+      headerIndex.name = 1;
+      headerIndex.team = 2;
+      headerIndex.school = 2;
+      headerIndex.time = 3;
+    }
 
     const timeLike = s => {
       const raw = (s || '').trim().toUpperCase();
@@ -215,7 +182,6 @@ export default async (req, res) => {
     };
 
     const findSchoolCodeInRow = cellsText => {
-      // Try school column first (may alias to 'team' by header mapping)
       if (headerIndex.school != null) {
         const rawSchool = cellsText[headerIndex.school];
         if (!isPlaceholder(rawSchool)) {
@@ -224,7 +190,6 @@ export default async (req, res) => {
           if (mapped) return mapped;
         }
       }
-      // Try explicit team column
       if (headerIndex.team != null) {
         const rawTeam = normalizeCode(cellsText[headerIndex.team]);
         if (rawTeam) return rawTeam;
@@ -233,39 +198,34 @@ export default async (req, res) => {
     };
 
     let results = [];
-    const seenTeams = new Set();
+
+    // Only parse swimmer rows; ignore the interleaved detail rows
+    let rows = $(table).find('tbody > tr.clickable');
+    if (!rows.length) {
+      // Fallback: some pages might omit tbody or class
+      rows = $(table).find('tr.clickable');
+    }
+    if (!rows.length) {
+      // Last fallback: all body rows minus .detail
+      rows = $(table).find('tbody tr').filter((_, el) => !$(el).hasClass('detail'));
+    }
 
     rows.each((i, row) => {
-      const rowHtml = $(row).html();
-      const tds = $(row).find('td');
-      const cellsText = tds
+      const cellsText = $(row)
+        .find('td')
         .map((ci, td) => $(td).text().replace(/\s+/g, ' ').trim())
         .get();
 
-      if (i < 10) {
-        dlog(`Row[${i}] tdCount=`, tds.length);
-        dlog(`Row[${i}] cellsText=`, cellsText);
-      }
-
-      if (!cellsText.some(v => v && v.length)) {
-        stats.skippedEmpty++;
-        if (i < 10) dlog(`Row[${i}] skipped: empty cellsText`);
-        return;
-      }
+      if (!cellsText.length) return;
 
       const time = findTimeInRow(cellsText);
-      if (!time) {
-        stats.skippedNoTime++;
-        if (i < 10) dlog(`Row[${i}] skipped: no time found`);
-        return;
-      }
+      if (!time) return;
 
       let name = null;
       let schoolCode = null;
 
       if (headerIndex.name != null) {
-        const rawNameCell = cellsText[headerIndex.name] || '';
-        name = rawNameCell.trim();
+        name = (cellsText[headerIndex.name] || '').trim();
         schoolCode = findSchoolCodeInRow(cellsText) || null;
       } else if (headerIndex.team != null) {
         const rawTeamCell = cellsText[headerIndex.team] || '';
@@ -273,31 +233,12 @@ export default async (req, res) => {
         name = '';
       }
 
-      // Track team presence
-      if (headerIndex.team != null && cellsText[headerIndex.team]) {
-        seenTeams.add(normalizeCode(cellsText[headerIndex.team]));
-      }
-
-      if (!schoolCode) {
-        stats.skippedNoSchool++;
-        if (i < 10) dlog(`Row[${i}] skipped: schoolCode not resolved`, { name, time, cellsText });
-        return;
-      }
-
-      const allowed = allowedCodes.has(schoolCode);
-      if (!allowed) {
-        stats.skippedNotAllowed++;
-        if (i < 10) dlog(`Row[${i}] skipped: schoolCode not in allowedCodes`, { schoolCode, name, time });
-        return;
-      }
+      if (!schoolCode || !allowedCodes.has(schoolCode)) return;
 
       results.push({ name, schoolCode, time });
-      stats.parsedOk++;
-
-      if (i < 10) dlog(`Row[${i}] parsed OK:`, { name, schoolCode, time });
     });
 
-    // Timing helpers and post-processing
+    // Fastest-per-swimmer consolidation
     const timeToSeconds = t => {
       if (/^(?:NT|DQ|NS|DNF)$/i.test(t)) return Infinity;
       const parts = t.split(':').map(parseFloat);
@@ -310,21 +251,13 @@ export default async (req, res) => {
     const fastestMap = new Map();
     for (const r of individuals) {
       const key = r.name.trim().toUpperCase();
-      const currentBest = fastestMap.get(key);
-      if (!currentBest || timeToSeconds(r.time) < timeToSeconds(currentBest.time)) {
+      const best = fastestMap.get(key);
+      if (!best || timeToSeconds(r.time) < timeToSeconds(best.time)) {
         fastestMap.set(key, r);
       }
     }
 
     results = [...fastestMap.values(), ...relays];
-
-    // Final debug summary
-    dlog('Seen teams (normalized):', Array.from(seenTeams));
-    dlog('Stats:', stats);
-    dlog('Results count (after fastest merge):', results.length);
-    if (DEBUG && results.length) {
-      dlog('Results sample:', results.slice(0, 10));
-    }
 
     res.status(200).json(results);
   } catch (err) {

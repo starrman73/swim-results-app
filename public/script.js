@@ -157,7 +157,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Build a safe, correctly delimited query string
     const params = new URLSearchParams({
-      org: '1',
       gender: genderVal,
       event: eventVal,
     });
@@ -192,6 +191,7 @@ renderTable(unique);
 
   console.log('Click listener attached');
 });
+
 
 
 

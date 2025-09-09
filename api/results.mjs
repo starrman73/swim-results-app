@@ -77,7 +77,7 @@ export default async (req, res) => {
       cleaned.forEach((h, i) => {
         if (idx.rank == null && (h === '#' || h === 'rank')) idx.rank = i;
         if (idx.name == null && (h === 'name' || h === 'swimmer' || h === 'athlete')) idx.name = i;
-        if (idx.school == null && (h === 'school' || h === 'highschool' || h === 'hs')) idx.school = i;
+        if (idx.school == null && (h === 'school' || h === 'highschool' || h === 'hs' || h === 'team')) idx.school = i;        
         if (idx.team == null && h === 'team') idx.team = i;
         if (idx.time == null && (h === 'time' || h.startsWith('time'))) idx.time = i;
       });
@@ -133,9 +133,9 @@ export default async (req, res) => {
         }
       }
       if (headerIndex.team != null) {
-        const rawTeam = cellsText[headerIndex.team];
-        if (isCodeToken(rawTeam)) return normalizeCode(rawTeam);
-      }
+  const rawTeam = normalizeCode(cellsText[headerIndex.team]);
+  if (rawTeam && allowedCodes.has(rawTeam)) return rawTeam;
+}
       return '';
     };
 

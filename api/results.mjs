@@ -7,7 +7,7 @@ export default async (req, res) => {
     const { gender, event } = req.query;
     const org = 1;
 
-    if (!gender || !event || !course) {
+    if (!gender || !event ) {
       return res.status(400).json({ error: 'Missing required query params' });
     }
 

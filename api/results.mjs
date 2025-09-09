@@ -3,8 +3,12 @@ import fs from 'fs';
 import path from 'path';
 
 export default async (req, res) => {
+  console.log('[results-entry] invoked');
+  console.log('[results-version] v2.0-struct');
+
   try {
     const { gender, event } = req.query;
+    const org = 1;
 
     if (!gender || !event) {
       return res.status(400).json({ error: 'Missing required query params' });
@@ -19,13 +23,10 @@ export default async (req, res) => {
       return ['NULL', 'N/A', 'NA', '-', '—'].includes(up);
     };
 
-    // Load allowed codes
+    // Load CSV (allowed codes + name map)
     const csvPath = path.join(process.cwd(), 'public', 'division2.csv');
-    const csvLines = fs.readFileSync(csvPath, 'utf8')
-      .replace(/^\uFEFF/, '')
-      .trim()
-      .split('\n')
-      .slice(1);
+    const csvRaw = fs.readFileSync(csvPath, 'utf8');
+    const csvLines = csvRaw.replace(/^\uFEFF/, '').trim().split('\n').slice(1);
 
     const allowedCodes = new Set();
     const schoolNameToCode = new Map();
@@ -43,107 +44,14 @@ export default async (req, res) => {
     }
 
     const targetUrl = `https://meetdirector.online/reports/report_rankings_enhanced.php?org_id=1&class_id=&div_id=2&course=&gender=${encodeURIComponent(
-  gender
-)}&event=${encodeURIComponent(event)}&pp=50&page=1`;
-
+      gender
+    )}&event=${encodeURIComponent(event)}&pp=50&page=1`;
 
     const resp = await fetch(targetUrl);
     const html = await resp.text();
     const $ = cheerio.load(html);
 
-    // Helpers for header handling
-    const normalizeHeader = h =>
-      (h || '').toLowerCase().trim().replace(/\s+/g, '').replace(/\(.*?\)/g, '');
-
-    const getHeaderTexts = t => {
-      // Prefer thead th; fallback to first row th; final fallback to first row td
-      const $t = $(t);
-      const ths = $t.find('thead tr:last-child th');
-      if (ths.length) return ths.map((_, el) => $(el).text().trim()).get();
-      const firstTrTh = $t.find('tr').first().find('th');
-      if (firstTrTh.length) return firstTrTh.map((_, el) => $(el).text().trim()).get();
-      const firstTrTd = $t.find('tr').first().find('td');
-      if (firstTrTd.length) return firstTrTd.map((_, el) => $(el).text().trim()).get();
-      return [];
-    };
-
-    // Find the exact Rankings table by header sequence
-    const expected = ['rank', 'name', 'team', 'time'];
-    let table = null;
-    let headerCells = [];
-
-    $('table').each((i, t) => {
-      const headers = getHeaderTexts(t);
-      const norm = headers.map(normalizeHeader);
-      if (
-        norm.length >= 4 &&
-        norm[0] === expected[0] &&
-        norm[1] === expected[1] &&
-        norm[2] === expected[2] &&
-        norm[3] === expected[3]
-      ) {
-        table = t;
-        headerCells = headers;
-        return false; // break
-      }
-      return true;
-    });
-
-    // Fallback: find the table within the Rankings card
-    if (!table) {
-      const cardTable = $('h1')
-        .filter((_, el) => $(el).text().trim().toLowerCase() === 'rankings')
-        .closest('div.card')
-        .find('table')
-        .first()
-        .get(0);
-
-      if (cardTable) {
-        const headers = getHeaderTexts(cardTable);
-        const norm = headers.map(normalizeHeader);
-        if (norm.length) {
-          table = cardTable;
-          headerCells = headers;
-        }
-      }
-    }
-
-    if (!table) {
-      return res.status(200).json([]);
-    }
-
-    // Build header index (and bias "team" as school when present)
-    function buildHeaderIndex(cells) {
-      const cleaned = cells.map(normalizeHeader);
-      const idx = {};
-      cleaned.forEach((h, i) => {
-        if (idx.rank == null && (h === '#' || h === 'rank')) idx.rank = i;
-        if (idx.name == null && (h === 'name' || h === 'swimmer' || h === 'athlete')) idx.name = i;
-        if (idx.school == null && (h === 'school' || h === 'highschool' || h === 'hs' || h === 'team')) idx.school = i;
-        if (idx.team == null && h === 'team') idx.team = i;
-        if (idx.time == null && (h === 'time' || h.startsWith('time'))) idx.time = i;
-      });
-      return { idx, cleaned };
-    }
-
-    const { idx: headerIndex, cleaned: cleanedHeaders } = buildHeaderIndex(headerCells);
-
-    // If headers exactly match the expected sequence, enforce indices as a sanity check
-    const cleanedEq = cleanedHeaders.map(normalizeHeader);
-    if (
-      cleanedEq.length >= 4 &&
-      cleanedEq[0] === expected[0] &&
-      cleanedEq[1] === expected[1] &&
-      cleanedEq[2] === expected[2] &&
-      cleanedEq[3] === expected[3]
-    ) {
-      headerIndex.rank = 0;
-      headerIndex.name = 1;
-      headerIndex.team = 2;
-      headerIndex.school = 2;
-      headerIndex.time = 3;
-    }
-
+    // Helper: time detection
     const timeLike = s => {
       const raw = (s || '').trim().toUpperCase();
       if (!raw) return false;
@@ -151,90 +59,67 @@ export default async (req, res) => {
       const t = raw.replace(/\(.*?\)/g, '').replace(/[A-Z]$/, '');
       return /^(\d{1,2}:)?\d{1,2}\.\d{2}$/.test(t);
     };
-
     const normalizeTime = s => {
       const raw = (s || '').trim().toUpperCase();
       if (/^(?:NT|DQ|NS|DNF)$/.test(raw)) return raw;
-      return raw.replace(/\(.*?\)/g, '').replace(/[A-Z]$/, '').trim();
+      return raw.replace(/\(.*?\)\s*/g, '').replace(/[A-Z]$/, '').trim();
     };
 
-    const isCodeToken = s => {
-      if (isPlaceholder(s)) return false;
-      const v = (s || '').trim();
-      return /^[A-Z0-9]{2,6}$/.test(v) && v === v.toUpperCase();
-    };
+    // Heuristic: pick the table with the most rows that look like [rank, name, team, time]
+    let bestTable = null;
+    let bestScore = -1;
 
-    const mapSchoolNameToCode = s => {
-      const key = normalizeSchoolName(s);
-      if (!key) return '';
-      return schoolNameToCode.get(key) || '';
-    };
+    $('table').each((ti, t) => {
+      let score = 0;
+      const trs = $(t).find('tbody tr').length ? $(t).find('tbody tr') : $(t).find('tr');
+      trs.each((i, tr) => {
+        const tds = $(tr).find('td');
+        if (tds.length !== 4) return;
+        const lastText = $(tds[3]).text().trim();
+        if (timeLike(lastText)) score++;
+      });
+      if (score > bestScore) {
+        bestScore = score;
+        bestTable = t;
+      }
+    });
 
-    const findTimeInRow = cellsText => {
-      if (headerIndex.time != null) {
-        const v = cellsText[headerIndex.time];
-        if (timeLike(v)) return normalizeTime(v);
-      }
-      for (const v of cellsText) {
-        if (timeLike(v)) return normalizeTime(v);
-      }
-      return '';
-    };
+    if (!bestTable || bestScore <= 0) {
+      // No structurally matching table found
+      return res.status(200).json([]);
+    }
 
-    const findSchoolCodeInRow = cellsText => {
-      if (headerIndex.school != null) {
-        const rawSchool = cellsText[headerIndex.school];
-        if (!isPlaceholder(rawSchool)) {
-          if (isCodeToken(rawSchool)) return normalizeCode(rawSchool);
-          const mapped = mapSchoolNameToCode(rawSchool);
-          if (mapped) return mapped;
-        }
-      }
-      if (headerIndex.team != null) {
-        const rawTeam = normalizeCode(cellsText[headerIndex.team]);
-        if (rawTeam) return rawTeam;
-      }
-      return '';
-    };
+    // Parse only rows with exactly 4 tds and time-like last cell (skips detail rows)
+    const table = bestTable;
+    const rows = ($(table).find('tbody tr').length ? $(table).find('tbody tr') : $(table).find('tr'))
+      .filter((_, tr) => {
+        const tds = $(tr).find('td');
+        if (tds.length !== 4) return false;
+        const lastText = $(tds[3]).text().trim();
+        return timeLike(lastText);
+      });
 
     let results = [];
 
-    // Only parse swimmer rows; ignore the interleaved detail rows
-    let rows = $(table).find('tbody > tr.clickable');
-    if (!rows.length) {
-      // Fallback: some pages might omit tbody or class
-      rows = $(table).find('tr.clickable');
-    }
-    if (!rows.length) {
-      // Last fallback: all body rows minus .detail
-      rows = $(table).find('tbody tr').filter((_, el) => !$(el).hasClass('detail'));
-    }
+    rows.each((i, tr) => {
+      const tds = $(tr).find('td');
+      const rankText = $(tds[0]).text().replace(/\s+/g, ' ').trim(); // not used downstream, but here for clarity
+      const nameText = $(tds[1]).text().replace(/\s+/g, ' ').trim(); // e.g., "Quinn Beason" (note: original shows no spaces)
+      const teamText = $(tds[2]).text().replace(/\s+/g, ' ').trim(); // e.g., "ESD"
+      const timeText = $(tds[3]).text().replace(/\s+/g, ' ').trim();
 
-    rows.each((i, row) => {
-      const cellsText = $(row)
-        .find('td')
-        .map((ci, td) => $(td).text().replace(/\s+/g, ' ').trim())
-        .get();
+      const time = normalizeTime(timeText);
+      if (!timeLike(time)) return;
 
-      if (!cellsText.length) return;
-
-      const time = findTimeInRow(cellsText);
-      if (!time) return;
-
-      let name = null;
-      let schoolCode = null;
-
-      if (headerIndex.name != null) {
-        name = (cellsText[headerIndex.name] || '').trim();
-        schoolCode = findSchoolCodeInRow(cellsText) || null;
-      } else if (headerIndex.team != null) {
-        const rawTeamCell = cellsText[headerIndex.team] || '';
-        schoolCode = normalizeCode(rawTeamCell);
-        name = '';
+      // Resolve school code (team column)
+      let schoolCode = '';
+      if (!isPlaceholder(teamText)) {
+        const normalizedTeam = normalizeCode(teamText); // ensures uppercase/alnum, trims oddities
+        schoolCode = normalizedTeam || '';
       }
-
       if (!schoolCode || !allowedCodes.has(schoolCode)) return;
 
+      const name = (nameText || '').trim();
       results.push({ name, schoolCode, time });
     });
 
@@ -245,14 +130,14 @@ export default async (req, res) => {
       return parts.length === 1 ? parts[0] : parts[0] * 60 + parts[1];
     };
 
-    const individuals = results.filter(r => headerIndex.name != null && r.name && r.name.trim());
-    const relays = results.filter(r => !(headerIndex.name != null && r.name && r.name.trim()));
+    const individuals = results.filter(r => r.name && r.name.trim());
+    const relays = results.filter(r => !(r.name && r.name.trim()));
 
     const fastestMap = new Map();
     for (const r of individuals) {
       const key = r.name.trim().toUpperCase();
-      const best = fastestMap.get(key);
-      if (!best || timeToSeconds(r.time) < timeToSeconds(best.time)) {
+      const currentBest = fastestMap.get(key);
+      if (!currentBest || timeToSeconds(r.time) < timeToSeconds(currentBest.time)) {
         fastestMap.set(key, r);
       }
     }

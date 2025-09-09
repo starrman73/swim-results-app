@@ -53,15 +53,14 @@ export default async (req, res) => {
     let headerCells = [];
     let table = null;
 
-    $('table').each((ti, t) => {
-      const theadThs = $(t).find('thead tr:last-child th');
-      const ths = theadThs.length ? theadThs : $(t).find('tr').first().find('th');
-      if (ths.length >= 2) {
-        table = t;
-        headerCells = ths.map((i, el) => $(el).text().trim()).get();
-        return false;
-      }
-    });
+$('table').each((ti, t) => {
+  const firstRowCells = $(t).find('tr').first().children();
+  if (firstRowCells.length >= 2) {
+    table = t;
+    headerCells = firstRowCells.map((i, el) => $(el).text().trim()).get();
+    return false;
+  }
+});
 
     if (!table) {
       console.warn('No table with headers found.');

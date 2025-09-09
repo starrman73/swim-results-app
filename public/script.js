@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const genderSelect = document.getElementById('genderDropdown');
   const eventSelect = document.getElementById('eventDropdown');
-  const courseSelect = document.getElementById('courseDropdown');
+  //const courseSelect = document.getElementById('courseDropdown');
   const showBtn = document.getElementById('showResultsBtn');
 
   // Preload the school code key on page load
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
      console.log('Show Results click handler START');
     const genderVal = genderSelect?.value;
     const eventVal = eventSelect?.value;
-    const courseVal = courseSelect?.value;
+    //const courseVal = courseSelect?.value;
 
     const warnMissing = () => {
       Swal.fire({
@@ -147,12 +147,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     };
 
-    if (!genderVal || !eventVal || !courseVal) {
+    if (!genderVal || !eventVal ) {
       warnMissing();
       return;
     }
 
-    console.log({ genderVal, eventVal, courseVal });
+    console.log({ genderVal, eventVal });
     console.log('Raw event value from dropdown:', eventVal);
 
     // Build a safe, correctly delimited query string
@@ -160,7 +160,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       org: '1',
       gender: genderVal,
       event: eventVal,
-      course: courseVal,
     });
     const apiUrl = `/api/results?${params.toString()}`;
     console.log('Fetching from:', apiUrl);
@@ -193,6 +192,7 @@ renderTable(unique);
 
   console.log('Click listener attached');
 });
+
 
 
 

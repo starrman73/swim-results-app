@@ -5,7 +5,6 @@ import path from 'path';
 export default async (req, res) => {
   try {
     const { gender, event } = req.query;
-    const org = 1;
 
     if (!gender || !event) {
       return res.status(400).json({ error: 'Missing required query params' });

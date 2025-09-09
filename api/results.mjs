@@ -7,7 +7,7 @@ export default async (req, res) => {
     const { gender, event } = req.query;
     const org = 1;
 
-    if (!gender || !event ) {
+    if (!gender || !event) {
       return res.status(400).json({ error: 'Missing required query params' });
     }
 
@@ -17,7 +17,7 @@ export default async (req, res) => {
       const v = (s || '').trim();
       if (!v) return true;
       const up = v.toUpperCase();
-      return ['NULL','N/A','NA','-','—'].includes(up);
+      return ['NULL', 'N/A', 'NA', '-', '—'].includes(up);
     };
 
     const csvPath = path.join(process.cwd(), 'public', 'division2.csv');
@@ -77,7 +77,7 @@ export default async (req, res) => {
       cleaned.forEach((h, i) => {
         if (idx.rank == null && (h === '#' || h === 'rank')) idx.rank = i;
         if (idx.name == null && (h === 'name' || h === 'swimmer' || h === 'athlete')) idx.name = i;
-        if (idx.school == null && (h === 'school' || h === 'highschool' || h === 'hs' || h === 'team')) idx.school = i;        
+        if (idx.school == null && (h === 'school' || h === 'highschool' || h === 'hs' || h === 'team')) idx.school = i;
         if (idx.team == null && h === 'team') idx.team = i;
         if (idx.time == null && (h === 'time' || h.startsWith('time'))) idx.time = i;
       });
@@ -133,17 +133,18 @@ export default async (req, res) => {
         }
       }
       if (headerIndex.team != null) {
-  const rawTeam = normalizeCode(cellsText[headerIndex.team]);
-  if (rawTeam && allowedCodes.has(rawTeam)) return rawTeam;
-}
+        const rawTeam = normalizeCode(cellsText[headerIndex.team]);
+        if (rawTeam && allowedCodes.has(rawTeam)) return rawTeam;
+      }
       return '';
     };
 
     let results = [];
 
-    const rows = $(table).find('tbody tr').length
-      ? $(table).find('tbody tr')
-      : $(table).find('tr').slice(1);
+    const rows = $(table).find('tbody tr').filter((i, el) => {
+      const cls = $(el).attr('class') || '';
+      return !cls.includes('detail');
+    });
 
     rows.each((i, row) => {
       const cellsText = $(row)
@@ -160,36 +161,29 @@ export default async (req, res) => {
       let schoolCode = null;
 
       if (headerIndex.name != null) {
-        // Individual swimmer
         const rawNameCell = cellsText[headerIndex.name] || '';
         name = rawNameCell.trim();
         schoolCode = findSchoolCodeInRow(cellsText) || null;
       } else if (headerIndex.team != null) {
-        // Relay
         const rawTeamCell = cellsText[headerIndex.team] || '';
         schoolCode = normalizeCode(rawTeamCell);
-        name = ''; // <-- empty string instead of null
+        name = '';
       }
 
       if (!schoolCode || !allowedCodes.has(schoolCode)) return;
 
-      results.push({ name: name, schoolCode, time });
+      results.push({ name, schoolCode, time });
     });
 
-    // Helper to convert a time string to seconds for comparison
     const timeToSeconds = t => {
       if (/^(?:NT|DQ|NS|DNF)$/i.test(t)) return Infinity;
       const parts = t.split(':').map(parseFloat);
-      return parts.length === 1
-        ? parts[0]
-        : parts[0] * 60 + parts[1];
+      return parts.length === 1 ? parts[0] : parts[0] * 60 + parts[1];
     };
 
-    // Separate individuals and relays
     const individuals = results.filter(r => headerIndex.name != null && r.name && r.name.trim());
     const relays = results.filter(r => !(headerIndex.name != null && r.name && r.name.trim()));
 
-    // For individuals: keep only fastest time per swimmer
     const fastestMap = new Map();
     for (const r of individuals) {
       const key = r.name.trim().toUpperCase();
@@ -199,7 +193,6 @@ export default async (req, res) => {
       }
     }
 
-    // Merge back: fastest individuals + all relays
     results = [...fastestMap.values(), ...relays];
 
     res.status(200).json(results);

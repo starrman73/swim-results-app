@@ -4,11 +4,10 @@ import path from 'path';
 
 export default async (req, res) => {
   console.log('[results-entry] API route invoked');
-  console.log('[results-version] v2.2-fetchlog');
+  console.log('[results-version] v2.3-target-rankings');
 
   try {
     const { gender, event } = req.query;
-    const org = 1;
 
     if (!gender || !event) {
       return res.status(400).json({ error: 'Missing required query params' });
@@ -50,7 +49,6 @@ export default async (req, res) => {
       gender
     )}&event=${encodeURIComponent(event)}&pp=50&page=1`;
 
-    // Fetch with browser-like headers
     const resp = await fetch(targetUrl, {
       headers: {
         'User-Agent':
@@ -62,29 +60,34 @@ export default async (req, res) => {
 
     console.log('[fetch-status]', resp.status);
     let html = await resp.text();
-    console.log('[contains-table]', html.includes('<table')); // <-- add here
+    console.log('[contains-table]', html.includes('<table'));
     console.log('[html-length]', html.length);
-    console.log('[html-snippet-raw]', html.slice(0, 1000));
+    console.log('[html-snippet-raw]', html.slice(0, 500));
 
     // Fix malformed tags before parsing
-    // Fix malformed tags before parsing
-html = html
-  .replace(/<thstyle/gi, '<th style')
-  .replace(/<thclass/gi, '<th class')
-  .replace(/<trclass/gi, '<tr class')
-  .replace(/<trid=/gi, '<tr id=')
-  .replace(/<tdclass/gi, '<td class')
-  .replace(/<tdcolspan/gi, '<td colspan')
-  .replace(/<theadclass/gi, '<thead class')
-  .replace(/<tbodyclass/gi, '<tbody class');
-
+    html = html
+      .replace(/<thstyle/gi, '<th style')
+      .replace(/<thclass/gi, '<th class')
+      .replace(/<trclass/gi, '<tr class')
+      .replace(/<trid=/gi, '<tr id=')
+      .replace(/<tdclass/gi, '<td class')
+      .replace(/<tdcolspan/gi, '<td colspan')
+      .replace(/<theadclass/gi, '<thead class')
+      .replace(/<tbodyclass/gi, '<tbody class');
 
     const $ = cheerio.load(html);
 
-    $('table').each((i, t) => {
-  console.log('[table-index]', i, 'rows:', $(t).find('tr').length);
-  console.log('[first-row]', $(t).find('tr').first().html());
-});
+    // Directly target the Rankings table
+    const rankingsTable = $('h1')
+      .filter((_, el) => $(el).text().trim().toLowerCase() === 'rankings')
+      .closest('.card')
+      .find('table')
+      .first();
+
+    if (!rankingsTable.length) {
+      console.warn('[results] Rankings table not found');
+      return res.status(200).json([]);
+    }
 
     const timeLike = s => {
       const raw = (s || '').trim().toUpperCase();
@@ -99,34 +102,9 @@ html = html
       return raw.replace(/\(.*?\)/g, '').replace(/[A-Z]$/, '').trim();
     };
 
-    // Find table with most rows that look like [rank, name, team, time]
-    let bestTable = null;
-    let bestScore = -1;
-    $('table').each((ti, t) => {
-      let score = 0;
-      const trs = $(t).find('tbody tr').length ? $(t).find('tbody tr') : $(t).find('tr');
-      trs.each((_, tr) => {
-        const tds = $(tr).find('td');
-        if (tds.length !== 4) return;
-        if (timeLike($(tds[3]).text().trim())) score++;
-      });
-      if (score > bestScore) {
-        bestScore = score;
-        bestTable = t;
-      }
-    });
-
-    if (!bestTable) {
-      console.warn('[results] No matching table found');
-      return res.status(200).json([]);
-    }
-
-    const rows = ($(bestTable).find('tbody tr').length
-      ? $(bestTable).find('tbody tr')
-      : $(bestTable).find('tr')
-    ).filter((_, tr) => {
+    const rows = rankingsTable.find('tbody tr').filter((_, tr) => {
       const tds = $(tr).find('td');
-      return tds.length === 4 && timeLike($(tds[3]).text().trim());
+      return tds.length >= 4 && timeLike($(tds[3]).text().trim());
     });
 
     let results = [];

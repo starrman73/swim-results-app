@@ -62,8 +62,9 @@ export default async (req, res) => {
 
     console.log('[fetch-status]', resp.status);
     let html = await resp.text();
-    console.log('[html-length]', html.length);
-    console.log('[html-snippet-raw]', html.slice(0, 1000));
+    console.log('[contains-table]', html.includes('<table')); // <-- add here
+console.log('[html-length]', html.length);
+console.log('[html-snippet-raw]', html.slice(0, 1000));
 
     // Fix malformed tags before parsing
     html = html

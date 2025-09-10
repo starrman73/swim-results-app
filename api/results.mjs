@@ -81,6 +81,11 @@ html = html
 
     const $ = cheerio.load(html);
 
+    $('table').each((i, t) => {
+  console.log('[table-index]', i, 'rows:', $(t).find('tr').length);
+  console.log('[first-row]', $(t).find('tr').first().html());
+});
+
     const timeLike = s => {
       const raw = (s || '').trim().toUpperCase();
       if (!raw) return false;

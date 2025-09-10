@@ -62,13 +62,15 @@ const headers = {
 
 console.log('[fetch-headers]', headers);
 
+// ✅ Actually perform the fetch here
+const resp = await fetch(targetUrl, { headers });
 
+console.log('[fetch-status]', resp.status);
 
-    console.log('[fetch-status]', resp.status);
-    let html = await resp.text();
-    console.log('[contains-table]', html.includes('<table'));
-    console.log('[html-length]', html.length);
-    console.log('[html-snippet-raw]', html.slice(0, 500));
+let html = await resp.text();
+console.log('[contains-table]', html.includes('<table'));
+console.log('[html-length]', html.length);
+console.log('[html-snippet-raw]', html.slice(0, 500));
 
     // Fix malformed tags before parsing
     html = html

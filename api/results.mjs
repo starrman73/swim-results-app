@@ -52,13 +52,14 @@ export default async (req, res) => {
 const resp = await fetch(targetUrl, {
   headers: {
     'User-Agent':
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0 Safari/537.36',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Accept-Language': 'en-US,en;q=0.9',
     'Referer': 'https://meetdirector.online/',
-    'Cookie': 'TTSESSID=9dc94c0abc7f6daa31c6cac5c6322a83'
+    'Cookie': `TTSESSID=${process.env.TTSESSID}`
   }
 });
+
 
 
     console.log('[fetch-status]', resp.status);

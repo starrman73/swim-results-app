@@ -77,17 +77,18 @@ export default async (req, res) => {
 
     const $ = cheerio.load(html);
 
-    // Directly target the Rankings table
-    const rankingsTable = $('h1')
-      .filter((_, el) => $(el).text().trim().toLowerCase() === 'rankings')
-      .closest('.card')
-      .find('table')
-      .first();
+    // Instead of the .closest('.card') chain:
+const rankingsTable = $('.card table').first();
 
-    if (!rankingsTable.length) {
-      console.warn('[results] Rankings table not found');
-      return res.status(200).json([]);
-    }
+if (!rankingsTable.length) {
+  console.warn('[results] Rankings table not found');
+  return res.status(200).json([]);
+}
+
+const rows = rankingsTable.find('tbody tr').filter((_, tr) => {
+  const tds = $(tr).find('td');
+  return tds.length >= 4 && timeLike($(tds[3]).text().trim());
+});
 
     const timeLike = s => {
       const raw = (s || '').trim().toUpperCase();

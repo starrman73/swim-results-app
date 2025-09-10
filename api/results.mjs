@@ -103,10 +103,10 @@ const rows = rankingsTable.find('tbody tr').filter((_, tr) => {
       return raw.replace(/\(.*?\)/g, '').replace(/[A-Z]$/, '').trim();
     };
 
-    const rows = rankingsTable.find('tbody tr').filter((_, tr) => {
-      const tds = $(tr).find('td');
-      return tds.length >= 4 && timeLike($(tds[3]).text().trim());
-    });
+    // const rows = rankingsTable.find('tbody tr').filter((_, tr) => {
+    //   const tds = $(tr).find('td');
+    //   return tds.length >= 4 && timeLike($(tds[3]).text().trim());
+    // });
 
     let results = [];
     rows.each((_, tr) => {

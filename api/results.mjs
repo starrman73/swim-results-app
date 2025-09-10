@@ -63,15 +63,21 @@ export default async (req, res) => {
     console.log('[fetch-status]', resp.status);
     let html = await resp.text();
     console.log('[contains-table]', html.includes('<table')); // <-- add here
-console.log('[html-length]', html.length);
-console.log('[html-snippet-raw]', html.slice(0, 1000));
+    console.log('[html-length]', html.length);
+    console.log('[html-snippet-raw]', html.slice(0, 1000));
 
     // Fix malformed tags before parsing
-    html = html
-      .replace(/<thstyle/gi, '<th style')
-      .replace(/<trclass/gi, '<tr class')
-      .replace(/<tdclass/gi, '<td class')
-      .replace(/<theadclass/gi, '<thead class');
+    // Fix malformed tags before parsing
+html = html
+  .replace(/<thstyle/gi, '<th style')
+  .replace(/<thclass/gi, '<th class')
+  .replace(/<trclass/gi, '<tr class')
+  .replace(/<trid=/gi, '<tr id=')
+  .replace(/<tdclass/gi, '<td class')
+  .replace(/<tdcolspan/gi, '<td colspan')
+  .replace(/<theadclass/gi, '<thead class')
+  .replace(/<tbodyclass/gi, '<tbody class');
+
 
     const $ = cheerio.load(html);
 

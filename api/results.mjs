@@ -77,6 +77,9 @@ export default async (req, res) => {
 
     const $ = cheerio.load(html);
 
+    console.log('[tbody-html]', $('.card table').first().find('tbody').html());
+
+
     // Instead of the .closest('.card') chain:
 const rankingsTable = $('.card table').first();
 
